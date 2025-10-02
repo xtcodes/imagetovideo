@@ -3,232 +3,370 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Tombol Buat</title>
+<title>Image → Video Converter (HD + Multi-Format)</title>
 <style>
-body {
-  font-family: sans-serif;
-  background: #f4f8fd;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-}
-.app {
-  width: 100%;
-  max-width: 600px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  box-sizing: border-box;
-}
-h2 { text-align: center; margin-bottom: 16px; }
-
-/* Tombol */
-.file-btn, .btn {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-  margin-bottom: 12px;
-  text-decoration: none;
-  border: none;
-}
-.file-btn:hover, .btn:hover { background: #1d4ed8; }
-
-/* Preview */
-.preview {
-  width: 100%;
-  aspect-ratio: 1/1;
-  background: #ddd;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 12px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.preview::after {
-  content: "No Image";
-  color: #777;
-  font-size: 16px;
-  position: absolute;
-}
-.preview img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  display: none; /* default sembunyi, muncul setelah pilih gambar */
-}
-
-.range-container { margin-bottom: 12px; }
-.progress-container { display: none; margin-top: 12px; }
-.progress { height: 20px; background: #eee; border-radius: 99px; overflow: hidden; position: relative; }
-.fill { height: 100%; width: 0; background: linear-gradient(90deg,#2563eb,#3b82f6); }
-.progress-text { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); font-size: 14px; font-weight: 500; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f4f8fd; padding:20px; display:flex; justify-content:center; }
+  .app { width:100%; max-width:760px; background:#fff; padding:20px; border-radius:10px; box-shadow:0 6px 30px rgba(0,0,0,0.08); box-sizing:border-box; }
+  h2 { text-align:center; margin-bottom:14px; }
+  .row { display:flex; gap:12px; margin-bottom:12px; align-items:center; flex-wrap:wrap; }
+  label { font-size:14px; color:#333; }
+  select, input[type="range"] { width:100%; }
+  .file-btn, .btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:12px 14px; border-radius:10px; background:#2563eb; color:#fff; font-weight:600;
+    cursor:pointer; width:100%; box-sizing:border-box; border:none; outline:none; text-decoration:none;
+  }
+  .file-btn:hover, .btn:hover { background:#1e40af; }
+  .controls { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px; }
+  .preview {
+    width:100%; aspect-ratio:1/1; background:#e6e9ef; border-radius:10px; overflow:hidden; display:flex;
+    align-items:center; justify-content:center; position:relative; margin-bottom:12px;
+  }
+  .preview::after { content:"No Image"; color:#7b868f; font-size:16px; position:absolute; }
+  .preview.has-image::after { content:''; } /* hide placeholder when image present */
+  .preview img { max-width:100%; max-height:100%; object-fit:contain; display:none; }
+  .range-row { display:flex; gap:10px; align-items:center; }
+  .progress-container { display:none; margin-top:12px; }
+  .progress { height:20px; background:#eee; border-radius:999px; overflow:hidden; position:relative; }
+  .fill { height:100%; width:0%; background: linear-gradient(90deg,#2563eb,#3b82f6); transition:width 0.1s linear; }
+  .progress-text { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:600; color:#333; font-size:13px; }
+  .small { font-size:13px; color:#444; }
+  @media (max-width:640px){ .controls{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
-<div class="app">
-<h2>Image → Video Converter</h2>
+  <div class="app">
+    <h2>Image → Video Converter (HD + Multi-Format)</h2>
 
-<!-- Tombol unggah -->
-<button class="file-btn" id="uploadBtn">Pilih Gambar</button>
-<input type="file" id="fileInput" accept="image/*" style="display:none;">
+    <!-- upload -->
+    <button class="file-btn" id="uploadBtn">Pilih Gambar</button>
+    <input id="fileInput" type="file" accept="image/*" style="display:none">
 
-<!-- Preview -->
-<div class="preview"><img id="preview" alt="preview"></div>
+    <!-- preview -->
+    <div class="preview" id="previewBox"><img id="previewImg" alt="preview"></div>
 
-<div class="range-container">
-  <label>Durasi (detik, max 60)</label><br>
-  <input type="range" id="durationRange" min="1" max="60" value="10">
-  <span id="durVal">10 detik</span>
-</div>
+    <!-- options -->
+    <div class="controls">
+      <div>
+        <label class="small">Durasi (detik, max 60)</label>
+        <div class="range-row">
+          <input id="durationRange" type="range" min="1" max="60" value="10">
+          <div style="min-width:80px;" id="durVal">10s</div>
+        </div>
+      </div>
 
-<button class="btn" id="startBtn" style="display:none;">Buat Video</button>
+      <div>
+        <label class="small">Kualitas (resolusi)</label>
+        <select id="qualitySelect">
+          <option value="720">HD 720p (720 × 720)</option>
+          <option value="1080" selected>Full HD 1080p (1080 × 1080)</option>
+          <option value="2160">4K 2160p (2160 × 2160)</option>
+        </select>
+      </div>
 
-<div class="progress-container">
-  <div class="progress">
-    <div class="fill" id="fill"></div>
-    <div class="progress-text" id="progressText">0%</div>
+      <div>
+        <label class="small">Format output</label>
+        <select id="formatSelect">
+          <option value="mp4" selected>MP4 (H.264)</option>
+          <option value="webm">WebM (VP9/VP8)</option>
+          <option value="gif">GIF</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="small">FPS (frames per second)</label>
+        <select id="fpsSelect">
+          <option value="30" selected>30 fps</option>
+          <option value="60">60 fps</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn" id="startBtn" style="display:none">Buat Video</button>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress">
+        <div class="fill" id="fill"></div>
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
+    </div>
+
+    <a id="downloadBtn" class="btn" download style="display:none; margin-top:10px">Unduh</a>
+
+    <canvas id="canvas" style="display:none"></canvas>
   </div>
-</div>
 
-<a id="download" class="btn" download style="display:none;">Unduh</a>
-<canvas id="canvas" style="display:none"></canvas>
-</div>
+  <!-- ffmpeg.wasm (dipakai hanya kalau user pilih mp4/gif) -->
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
-<script>
-const uploadBtn = document.getElementById('uploadBtn');
-const fileInput = document.getElementById('fileInput');
-const preview = document.getElementById('preview');
-const previewBox = document.querySelector('.preview');
-const durationRange = document.getElementById('durationRange');
-const durVal = document.getElementById('durVal');
-const startBtn = document.getElementById('startBtn');
-const fill = document.getElementById('fill');
-const progressText = document.getElementById('progressText');
-const progressContainer = document.querySelector('.progress-container');
-const download = document.getElementById('download');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+  <script>
+  (function(){
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    const previewBox = document.getElementById('previewBox');
+    const previewImg = document.getElementById('previewImg');
+    const durationRange = document.getElementById('durationRange');
+    const durVal = document.getElementById('durVal');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const formatSelect = document.getElementById('formatSelect');
+    const fpsSelect = document.getElementById('fpsSelect');
+    const startBtn = document.getElementById('startBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const fill = document.getElementById('fill');
+    const progressText = document.getElementById('progressText');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-let img = null;
+    let canvasImage = null; // Image used for canvas rendering
+    let ffmpeg = null;
+    let ffmpegLoaded = false;
+    const { createFFmpeg } = FFmpeg;
 
-// Tombol upload
-uploadBtn.addEventListener('click', () => fileInput.click());
+    // helper: update progress UI
+    function setProgress(pct, txt) {
+      fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      progressText.textContent = txt ?? Math.round(pct) + '%';
+    }
 
-// Saat pilih gambar
-fileInput.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const url = URL.createObjectURL(f);
+    // upload button open file dialog
+    uploadBtn.addEventListener('click', () => fileInput.click());
 
-  preview.src = url;
-  preview.style.display = "block";
-  previewBox.style.background = "#0000";
+    // file selected
+    fileInput.addEventListener('change', (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
 
-  img = new Image();
-  img.onload = () => {
-    startBtn.style.display = "inline-flex";
-  };
-  img.src = url;
+      const url = URL.createObjectURL(file);
 
-  uploadBtn.textContent = f.name;
-});
+      // show preview quickly (don't wait long)
+      previewImg.src = url;
+      previewImg.style.display = 'block';
+      previewBox.classList.add('has-image');
 
-// slider durasi
-durationRange.addEventListener('input', () => {
-  durVal.textContent = durationRange.value + " detik";
-});
+      // prepare image object used by canvas rendering (ensure onload before enabling start)
+      canvasImage = new Image();
+      canvasImage.onload = () => {
+        startBtn.style.display = 'block';
+        // optional: show natural size in console
+        console.log('Image loaded for canvas', canvasImage.naturalWidth, 'x', canvasImage.naturalHeight);
+      };
+      canvasImage.onerror = () => {
+        alert('Gagal memuat gambar untuk proses canvas. Gunakan file gambar lain.');
+        previewImg.style.display = 'none';
+        previewBox.classList.remove('has-image');
+        startBtn.style.display = 'none';
+      };
+      // set crossOrigin to anonymous if needed for remote images (not for local files)
+      canvasImage.src = url;
 
-// Gambar ke canvas
-function drawImageSquare() {
-  const cw = canvas.width, ch = canvas.height;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, cw, ch);
-  if (!img || img.naturalWidth === 0) return;
+      // reset UI
+      downloadBtn.style.display = 'none';
+      progressContainer.style.display = 'none';
+      setProgress(0, '0%');
+      uploadBtn.textContent = file.name;
+    });
 
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  const scale = Math.min(cw / iw, ch / ih);
-  const dw = iw * scale, dh = ih * scale;
-  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+    // duration display
+    durationRange.addEventListener('input', () => { durVal.textContent = durationRange.value + 's'; });
 
-  ctx.drawImage(img, dx, dy, dw, dh);
-}
+    // draw one frame (centered, blur background)
+    function drawFrame(size, blurPx=40) {
+      const cw = canvas.width = size;
+      const ch = canvas.height = size;
+      ctx.clearRect(0,0,cw,ch);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,cw,ch);
 
-// Buat video
-async function createVideo() {
-  if (!img) { alert("Pilih gambar dulu!"); return; }
+      if (!canvasImage || !canvasImage.complete || canvasImage.naturalWidth === 0) return;
 
-  const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  canvas.width = 1080;
-  canvas.height = 1080;
+      const iw = canvasImage.naturalWidth;
+      const ih = canvasImage.naturalHeight;
+      const scale = Math.min(cw/iw, ch/ih);
+      const dw = Math.round(iw * scale);
+      const dh = Math.round(ih * scale);
+      const dx = Math.round((cw - dw)/2);
+      const dy = Math.round((ch - dh)/2);
 
-  startBtn.style.display = "none";
-  progressContainer.style.display = "block";
-  fill.style.width = "0%";
-  progressText.textContent = "0%";
-  download.style.display = "none";
+      // draw blurred background (draw scaled full image then blur)
+      ctx.save();
+      ctx.filter = `blur(${blurPx}px)`;
+      // draw image to cover full canvas
+      ctx.drawImage(canvasImage, 0, 0, cw, ch);
+      ctx.restore();
 
-  // cek codec support
-  let mimeType = "";
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
-    mimeType = "video/webm;codecs=vp9";
-  } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
-    mimeType = "video/webm;codecs=vp8";
-  } else {
-    mimeType = "video/webm";
-  }
-  console.log("MIME digunakan:", mimeType);
+      // draw main image centered
+      ctx.drawImage(canvasImage, dx, dy, dw, dh);
+    }
 
-  const stream = canvas.captureStream(30);
-  let chunks = [];
-  let recorder;
+    // Detect best mimeType for MediaRecorder
+    function detectMimeType() {
+      const tries = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      return tries.find(t => {
+        try { return MediaRecorder.isTypeSupported(t); } catch(e){ return false; }
+      }) || 'video/webm';
+    }
 
-  try {
-    recorder = new MediaRecorder(stream, { mimeType });
-  } catch (err) {
-    alert("Browser tidak mendukung MediaRecorder: " + err);
-    return;
-  }
+    // mapping bitrate by resolution
+    function bitrateForSize(size) {
+      if (size >= 2160) return 25_000_000; // 25 Mbps for 4K
+      if (size >= 1080) return 12_000_000; // 12 Mbps for 1080p
+      return 5_000_000; // 5 Mbps for 720p
+    }
 
-  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  recorder.start();
+    // Initialize ffmpeg lazily
+    async function ensureFFmpeg() {
+      if (ffmpegLoaded) return;
+      if (!ffmpeg) {
+        ffmpeg = createFFmpeg({ log: true });
+      }
+      // set progress handler if available
+      ffmpeg.setProgress && ffmpeg.setProgress(({ ratio }) => {
+        // ratio between 0..1
+        setProgress(ratio*100, 'Konversi: ' + Math.round(ratio*100) + '%');
+      });
+      await ffmpeg.load();
+      ffmpegLoaded = true;
+    }
 
-  const start = performance.now();
-  function loop(now) {
-    drawImageSquare();
-    const pct = Math.min(1, (now - start) / (durationSec * 1000));
-    fill.style.width = (pct*100) + "%";
-    progressText.textContent = Math.floor(pct*100) + "%";
-    if (pct < 1) requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
+    // create video process
+    startBtn.addEventListener('click', async () => {
+      try {
+        if (!canvasImage || !canvasImage.complete || canvasImage.naturalWidth === 0) {
+          alert('Pilih gambar dulu dan tunggu sampai preview terbaca.');
+          return;
+        }
 
-  await new Promise(r => setTimeout(r, durationSec*1000));
-  recorder.stop();
+        // UI setup
+        startBtn.disabled = true;
+        startBtn.style.opacity = 0.6;
+        progressContainer.style.display = 'block';
+        setProgress(0, 'Merekam 0%');
 
-  await new Promise(r => recorder.onstop = r);
+        const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
+        const size = Number(qualitySelect.value);
+        const fps = Number(fpsSelect.value);
+        const format = formatSelect.value;
 
-  const blob = new Blob(chunks, { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  download.href = url;
-  download.download = "output.webm";
+        // prepare canvas size and first draw
+        drawFrame(size);
 
-  progressContainer.style.display = "none";
-  download.style.display = "inline-flex";
-}
+        // choose mimeType and bitrate
+        const mimeType = detectMimeType();
+        const vbits = bitrateForSize(size);
 
-startBtn.addEventListener('click', createVideo);
-</script>
+        // capture stream
+        const stream = canvas.captureStream(fps);
+
+        let chunks = [];
+        let recorder;
+        try {
+          recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: vbits });
+        } catch (err) {
+          // fallback: try without specifying bitrate or with generic type
+          try { recorder = new MediaRecorder(stream); }
+          catch (err2) {
+            throw new Error('MediaRecorder tidak tersedia / mimeType tidak didukung di browser ini.');
+          }
+        }
+
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+
+        // prepare promise for stop
+        const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+
+        recorder.start();
+        console.log('Recorder started, mimeType:', mimeType, 'bitrate:', vbits);
+
+        // animate and update recording progress
+        const startTime = performance.now();
+        function recordLoop(now) {
+          // draw per frame
+          drawFrame(size);
+          const pct = Math.min(1, (now - startTime) / (durationSec*1000));
+          setProgress(pct*100, 'Merekam: ' + Math.floor(pct*100) + '%');
+          if (pct < 1) requestAnimationFrame(recordLoop);
+        }
+        requestAnimationFrame(recordLoop);
+
+        // wait duration
+        await new Promise(r => setTimeout(r, durationSec*1000));
+
+        // stop recorder and wait onstop
+        recorder.stop();
+        await stopPromise;
+
+        // prepare webm blob
+        const webmBlob = new Blob(chunks, { type: mimeType });
+        console.log('Recording finished. Size:', webmBlob.size);
+
+        // if format is webm -> done
+        if (format === 'webm') {
+          const url = URL.createObjectURL(webmBlob);
+          downloadBtn.href = url;
+          downloadBtn.download = `output_${size}p.webm`;
+          downloadBtn.style.display = 'block';
+          setProgress(100, 'Selesai');
+        } else {
+          // need ffmpeg conversion (mp4 or gif)
+          await ensureFFmpeg();
+          setProgress(0, 'Mulai konversi...');
+
+          const data = new Uint8Array(await webmBlob.arrayBuffer());
+          // write file to ffmpeg FS (overwrite if exists)
+          try { ffmpeg.FS('unlink', 'input.webm'); } catch(_) {}
+          ffmpeg.FS('writeFile', 'input.webm', data);
+
+          if (format === 'mp4') {
+            // convert to mp4 H.264
+            // use preset & crf to balance quality & speed
+            await ffmpeg.run(
+              '-i','input.webm',
+              '-c:v','libx264','-preset','veryfast','-crf','18',
+              '-movflags','+faststart',
+              'output.mp4'
+            );
+            const out = ffmpeg.FS('readFile', 'output.mp4');
+            const mp4Blob = new Blob([out.buffer], { type: 'video/mp4' });
+            const url = URL.createObjectURL(mp4Blob);
+            downloadBtn.href = url;
+            downloadBtn.download = `output_${size}p.mp4`;
+            downloadBtn.style.display = 'block';
+            setProgress(100, 'Selesai');
+          } else if (format === 'gif') {
+            // make gif (downscale to reasonable size)
+            // calculate scale for gif: keep width <= 480 to avoid huge gif
+            const scaleFilter = size > 480 ? 'scale=480:-1:flags=lanczos' : `scale=${size}:-1:flags=lanczos`;
+            await ffmpeg.run('-i','input.webm', '-vf', `fps=15,${scaleFilter}`, 'output.gif');
+            const out = ffmpeg.FS('readFile', 'output.gif');
+            const gifBlob = new Blob([out.buffer], { type: 'image/gif' });
+            const url = URL.createObjectURL(gifBlob);
+            downloadBtn.href = url;
+            downloadBtn.download = `output_${size}p.gif`;
+            downloadBtn.style.display = 'block';
+            setProgress(100, 'Selesai');
+          }
+          // optional: cleanup FS entries to free memory (not strictly required)
+          try { ffmpeg.FS('unlink', 'input.webm'); } catch(_) {}
+          try { ffmpeg.FS('unlink', 'output.mp4'); } catch(_) {}
+          try { ffmpeg.FS('unlink', 'output.gif'); } catch(_) {}
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Terjadi error: ' + (err.message || err));
+      } finally {
+        startBtn.disabled = false;
+        startBtn.style.opacity = 1;
+        // ensure progress bar visible finished state
+        setTimeout(()=>{ progressContainer.style.display = 'block'; }, 50);
+      }
+    });
+
+  })();
+  </script>
 </body>
 </html>
