@@ -21,6 +21,7 @@ body {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 h2 { text-align: center; margin-bottom: 16px; }
+
 .file-btn, .btn {
   display: inline-flex;
   justify-content: center;
@@ -31,12 +32,16 @@ h2 { text-align: center; margin-bottom: 16px; }
   color: #fff;
   font-weight: 500;
   cursor: pointer;
-  width: 100%;
+  width: auto;       /* jangan full, otomatis pas */
+  min-width: 150px;  /* minimal */
+  text-align: center;
   margin-bottom: 12px;
   text-decoration: none;
-  border: none; outline: none;
+  border: none;
+  outline: none;
 }
 .file-btn:hover, .btn:hover { background: #1d4ed8; }
+
 .preview {
   width: 100%;
   aspect-ratio: 1/1;
@@ -44,15 +49,24 @@ h2 { text-align: center; margin-bottom: 16px; }
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.preview::after {
+  content: "No Image";
+  color: #777;
+  font-size: 16px;
+  position: absolute;
 }
 .preview img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  display: none; /* default disembunyikan */
 }
+
 .range-container, .quality-container, .format-container { margin-bottom: 12px; }
 .progress-container { display: none; margin-top: 12px; }
 .progress { height: 20px; background: #eee; border-radius: 99px; overflow: hidden; position: relative; }
@@ -64,10 +78,10 @@ h2 { text-align: center; margin-bottom: 16px; }
 <div class="app">
 <h2>Image → Video Converter</h2>
 
-<div class="file-btn" id="uploadBtn">Pilih Gambar</div>
+<button class="file-btn" id="uploadBtn">Pilih Gambar</button>
 <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
-<div class="preview placeholder"><img id="preview" alt="preview" /></div>
+<div class="preview"><img id="preview" alt="preview"></div>
 
 <div class="range-container">
   <label>Durasi (detik, max 60)</label><br>
@@ -103,7 +117,6 @@ h2 { text-align: center; margin-bottom: 16px; }
 </div>
 
 <a id="download" class="btn" download style="display:none;">Unduh</a>
-
 <canvas id="canvas" style="display:none"></canvas>
 </div>
 
@@ -113,7 +126,7 @@ const { createFFmpeg } = FFmpeg;
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
-const previewContainer = document.querySelector('.preview');
+const previewBox = document.querySelector('.preview');
 const durationRange = document.getElementById('durationRange');
 const durVal = document.getElementById('durVal');
 const qualitySelect = document.getElementById('qualitySelect');
@@ -136,21 +149,17 @@ fileInput.addEventListener('change', e => {
   if (!f) return;
   const url = URL.createObjectURL(f);
 
-  // Tampilkan preview <img>
+  // tampilkan preview <img>
   preview.src = url;
-  previewContainer.classList.remove('placeholder');
+  preview.style.display = "block";
+  previewBox.classList.remove('placeholder');
+  previewBox.style.background = "#0000"; // hapus abu-abu
+  previewBox.querySelector("::after"); // hilangkan teks "No Image"
 
-  // Gambar untuk canvas
+  // untuk canvas
   img = new Image();
   img.onload = () => {
-    console.log("Gambar siap:", img.naturalWidth, "x", img.naturalHeight);
     startBtn.style.display = "inline-flex";
-  };
-  img.onerror = () => {
-    alert("Gagal memuat gambar!");
-    preview.src = "";
-    previewContainer.classList.add('placeholder');
-    startBtn.style.display = "none";
   };
   img.src = url;
 
@@ -161,7 +170,7 @@ fileInput.addEventListener('change', e => {
   progressText.textContent = "0%";
 });
 
-// Durasi slider
+// slider durasi
 durationRange.addEventListener('input', () => {
   durVal.textContent = durationRange.value + " detik";
 });
@@ -170,8 +179,7 @@ function drawImageSquareWithBlur() {
   const cw = canvas.width, ch = canvas.height;
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, cw, ch);
-
-  if (!img || !img.complete || img.naturalWidth === 0) return;
+  if (!img || img.naturalWidth === 0) return;
 
   const iw = img.naturalWidth, ih = img.naturalHeight;
   const scale = Math.min(cw / iw, ch / ih);
@@ -191,7 +199,6 @@ async function createVideo() {
     alert("Pilih gambar dulu!");
     return;
   }
-
   const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
   const size = Number(qualitySelect.value);
   const format = formatSelect.value;
@@ -230,7 +237,6 @@ async function createVideo() {
   const webmData = new Uint8Array(await blob.arrayBuffer());
 
   let finalBlob, filename;
-
   if (format === "webm") {
     finalBlob = blob;
     filename = `output_${size}p.webm`;
@@ -259,7 +265,6 @@ async function createVideo() {
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
 }
-
 startBtn.addEventListener('click', createVideo);
 </script>
 </body>
