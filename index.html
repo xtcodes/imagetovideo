@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image → Video Converter (WebM)</title>
+<title>Image → Video Converter (HD)</title>
 <style>
 body {
   font-family: sans-serif;
@@ -48,7 +48,7 @@ h2 {
 .preview {
   width: 100%;
   position: relative;
-  padding-top: 100%; /* kotak persegi responsive */
+  padding-top: 100%;
   background: #ddd;
   border-radius: 8px;
   overflow: hidden;
@@ -88,11 +88,11 @@ h2 {
 
 /* Progress bar */
 .progress-container {
-  display: none; /* default disembunyikan */
+  display: none;
   margin-top: 12px;
 }
 .progress {
-  height: 20px; /* lebih tinggi */
+  height: 20px;
   background: #eee;
   border-radius: 99px;
   overflow: hidden;
@@ -136,7 +136,7 @@ h2 {
 </head>
 <body>
 <div class="app">
-<h2>Image → Video Converter (WebM)</h2>
+<h2>Image → Video Converter (HD)</h2>
 
 <!-- Tombol upload -->
 <div class="file-btn" id="uploadBtn">Pilih Gambar</div>
@@ -187,7 +187,7 @@ uploadBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
-  uploadBtn.textContent = f.name; // ganti teks tombol
+  uploadBtn.textContent = f.name;
   const url = URL.createObjectURL(f);
   img.onload = () => {
     preview.src = url;
@@ -199,7 +199,7 @@ fileInput.addEventListener('change', e => {
   };
   img.src = url;
 
-  // Reset UI saat ganti gambar
+  // Reset UI
   startBtn.style.display = "inline-flex";
   download.style.display = "none";
   progressContainer.style.display = "none";
@@ -229,13 +229,13 @@ function drawImageSquareWithBlur() {
   const dx = (cw - dw)/2;
   const dy = (ch - dh)/2;
 
-  // Blur sisa ruang
+  // Blur background
   ctx.save();
-  ctx.filter = 'blur(20px)';
-  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.filter = 'blur(40px)'; // lebih lembut
+  ctx.drawImage(img, 0, 0, cw, ch);
   ctx.restore();
 
-  // Gambar image utama di center
+  // Gambar image utama di tengah
   ctx.drawImage(img, dx, dy, dw, dh);
 }
 
@@ -244,21 +244,29 @@ async function createVideo() {
   if (!img.src) { alert("Pilih gambar dulu"); return; }
 
   const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  const squareSize = 1080;
+  const squareSize = 1080; // bisa 1920 untuk full HD
   canvas.width = squareSize;
   canvas.height = squareSize;
 
-  // UI: tampilkan progress, sembunyikan tombol start
+  // UI
   startBtn.style.display = "none";
   progressContainer.style.display = "block";
   fill.style.width = "0%";
   progressText.textContent = "0%";
   download.style.display = "none";
 
-  const stream = canvas.captureStream(30);
-  const mimeType = "video/webm;codecs=vp8";
+  // Stream dengan FPS tinggi
+  const fps = 60;
+  const stream = canvas.captureStream(fps);
+
+  // Recorder dengan bitrate tinggi
+  const mimeType = "video/webm;codecs=vp9";
   let chunks = [];
-  const recorder = new MediaRecorder(stream, { mimeType });
+  const recorder = new MediaRecorder(stream, { 
+    mimeType, 
+    videoBitsPerSecond: 8_000_000 // 8 Mbps
+  });
+
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   recorder.start();
 
@@ -268,10 +276,6 @@ async function createVideo() {
     const pct = Math.min(1, (now - start) / (durationSec * 1000));
     fill.style.width = (pct*100) + "%";
     progressText.textContent = Math.floor(pct*100) + "%";
-
-    // Pindahkan progressText mengikuti ujung fill
-    progressText.style.left = `calc(${pct*100}% + 4px)`;
-
     if (pct < 1) requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
@@ -283,9 +287,9 @@ async function createVideo() {
   const blob = new Blob(chunks, { type: mimeType });
   const url = URL.createObjectURL(blob);
   download.href = url;
-  download.download = "output.webm";
+  download.download = "output_hd.webm";
 
-  // UI: sembunyikan progress, tampilkan tombol download
+  // UI
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
 }
