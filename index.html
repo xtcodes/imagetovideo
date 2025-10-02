@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image → Video Converter (HD + Format)</title>
+<title>Image → Video Converter (HD + Format) — Fix Download</title>
 <style>
   body { font-family:sans-serif; background:#f4f8fd; padding:20px; display:flex; justify-content:center; }
   .app { width:100%; max-width:720px; background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
@@ -11,7 +11,7 @@
   .file-btn, .btn {
     display:inline-flex; align-items:center; justify-content:center;
     width:100%; padding:12px; border-radius:8px; background:#2563eb; color:#fff;
-    font-weight:600; border:none; cursor:pointer; margin-bottom:12px;
+    font-weight:600; border:none; cursor:pointer; margin-bottom:12px; text-decoration:none;
   }
   .file-btn:hover, .btn:hover { background:#1d4ed8; }
   .preview {
@@ -23,11 +23,11 @@
   .preview img { max-width:100%; max-height:100%; object-fit:contain; display:none; }
   .row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
   select, input[type=range] { width:100%; }
-  label { font-size:13px; color:#333; }
+  label { font-size:13px; color:#333; display:block; margin-bottom:6px; }
   .progress-container { display:none; margin-top:12px; }
   .progress { height:20px; background:#eee; border-radius:99px; position:relative; overflow:hidden; }
-  .fill { height:100%; width:0; background:linear-gradient(90deg,#2563eb,#3b82f6); }
-  .progress-text { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:600; font-size:13px; }
+  .fill { height:100%; width:0; background:linear-gradient(90deg,#2563eb,#3b82f6); transition:width 0.12s linear; }
+  .progress-text { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:600; font-size:13px; color:#222; }
 </style>
 </head>
 <body>
@@ -43,7 +43,7 @@
     <div style="flex:1">
       <label>Durasi (detik)</label>
       <input type="range" id="durationRange" min="1" max="60" value="10">
-      <span id="durVal">10 detik</span>
+      <div id="durVal">10 detik</div>
     </div>
     <div style="flex:1">
       <label>Kualitas</label>
@@ -77,152 +77,230 @@
   <canvas id="canvas" style="display:none"></canvas>
 </div>
 
-<!-- ffmpeg.wasm (untuk mp4/gif) -->
+<!-- ffmpeg.wasm (digunakan jika memilih mp4 atau gif) -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
 <script>
-const uploadBtn = document.getElementById('uploadBtn');
-const fileInput = document.getElementById('fileInput');
-const previewBox = document.getElementById('previewBox');
-const previewImg = document.getElementById('previewImg');
-const durationRange = document.getElementById('durationRange');
-const durVal = document.getElementById('durVal');
-const qualitySelect = document.getElementById('qualitySelect');
-const formatSelect = document.getElementById('formatSelect');
-const startBtn = document.getElementById('startBtn');
-const progressContainer = document.getElementById('progressContainer');
-const fill = document.getElementById('fill');
-const progressText = document.getElementById('progressText');
-const downloadBtn = document.getElementById('downloadBtn');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+(async function(){
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInput = document.getElementById('fileInput');
+  const previewBox = document.getElementById('previewBox');
+  const previewImg = document.getElementById('previewImg');
+  const durationRange = document.getElementById('durationRange');
+  const durVal = document.getElementById('durVal');
+  const qualitySelect = document.getElementById('qualitySelect');
+  const formatSelect = document.getElementById('formatSelect');
+  const startBtn = document.getElementById('startBtn');
+  const progressContainer = document.getElementById('progressContainer');
+  const fill = document.getElementById('fill');
+  const progressText = document.getElementById('progressText');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
 
-let img = null;
+  let img = null;
+  let lastDownloadURL = null;
 
-// Upload
-uploadBtn.addEventListener('click', () => fileInput.click());
+  function setProgress(pct, txt) {
+    fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    progressText.textContent = txt ?? Math.round(pct) + '%';
+  }
 
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const url = URL.createObjectURL(file);
+  uploadBtn.addEventListener('click', () => fileInput.click());
 
-  previewImg.src = url;
-  previewImg.onload = () => {
-    previewImg.style.display = "block";
-    previewBox.classList.add("has-image");
-    startBtn.style.display = "block";
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    previewImg.src = url;
+    previewImg.style.display = 'block';
+    previewBox.classList.add('has-image');
+
     img = new Image();
+    img.onload = () => {
+      startBtn.style.display = 'block';
+      console.log('Image ready:', img.naturalWidth, 'x', img.naturalHeight);
+    };
+    img.onerror = () => {
+      alert('Gagal memuat gambar untuk canvas. Gunakan file lain.');
+      previewImg.style.display = 'none';
+      previewBox.classList.remove('has-image');
+      startBtn.style.display = 'none';
+    };
     img.src = url;
-  };
-});
 
-// Durasi slider
-durationRange.addEventListener('input', () => {
-  durVal.textContent = durationRange.value + " detik";
-});
+    // reset UI
+    downloadBtn.style.display = 'none';
+    if (lastDownloadURL) { URL.revokeObjectURL(lastDownloadURL); lastDownloadURL = null; }
+    progressContainer.style.display = 'none';
+    setProgress(0, '0%');
+    uploadBtn.textContent = file.name;
+  });
 
-// Draw image ke canvas
-function drawImage(size) {
-  canvas.width = size;
-  canvas.height = size;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, size, size);
+  durationRange.addEventListener('input', () => {
+    durVal.textContent = durationRange.value + ' detik';
+  });
 
-  if (!img) return;
-  const iw = img.naturalWidth;
-  const ih = img.naturalHeight;
-  const scale = Math.min(size / iw, size / ih);
-  const dw = iw * scale;
-  const dh = ih * scale;
-  const dx = (size - dw) / 2;
-  const dy = (size - dh) / 2;
+  function drawImage(size) {
+    canvas.width = size;
+    canvas.height = size;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,size,size);
+    if (!img || !img.complete) return;
 
-  ctx.save();
-  ctx.filter = 'blur(30px)';
-  ctx.drawImage(img, 0, 0, size, size);
-  ctx.restore();
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const scale = Math.min(size / iw, size / ih);
+    const dw = iw * scale, dh = ih * scale;
+    const dx = Math.round((size - dw) / 2), dy = Math.round((size - dh) / 2);
 
-  ctx.drawImage(img, dx, dy, dw, dh);
-}
+    ctx.save();
+    ctx.filter = 'blur(30px)';
+    ctx.drawImage(img, 0, 0, size, size);
+    ctx.restore();
 
-// Cari codec
-function getMime() {
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) return "video/webm;codecs=vp9";
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) return "video/webm;codecs=vp8";
-  return "video/webm";
-}
-
-// Buat video
-startBtn.addEventListener('click', async () => {
-  if (!img) { alert("Pilih gambar dulu!"); return; }
-
-  const durationSec = Number(durationRange.value);
-  const size = Number(qualitySelect.value);
-  const format = formatSelect.value;
-
-  startBtn.style.display = "none";
-  progressContainer.style.display = "block";
-  fill.style.width = "0%";
-  progressText.textContent = "0%";
-
-  drawImage(size);
-  const stream = canvas.captureStream(30);
-  const mimeType = getMime();
-  let chunks = [];
-  const recorder = new MediaRecorder(stream, { mimeType });
-  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  recorder.start();
-
-  const start = performance.now();
-  function loop(now) {
-    drawImage(size);
-    const pct = Math.min(1, (now - start) / (durationSec*1000));
-    fill.style.width = (pct*100) + "%";
-    progressText.textContent = Math.floor(pct*100) + "%";
-    if (pct < 1) requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  await new Promise(r => setTimeout(r, durationSec*1000));
-  recorder.stop();
-  await new Promise(r => recorder.onstop = r);
-
-  const webmBlob = new Blob(chunks, { type: mimeType });
-
-  // Kalau WebM langsung download
-  if (format === "webm") {
-    const url = URL.createObjectURL(webmBlob);
-    downloadBtn.href = url;
-    downloadBtn.download = "output.webm";
-    downloadBtn.style.display = "block";
-    return;
+    ctx.drawImage(img, dx, dy, dw, dh);
   }
 
-  // MP4/GIF pakai ffmpeg.wasm
-  const { createFFmpeg } = FFmpeg;
-  const ffmpeg = createFFmpeg({ log: true });
-  await ffmpeg.load();
-  ffmpeg.FS('writeFile', 'input.webm', new Uint8Array(await webmBlob.arrayBuffer()));
-
-  if (format === "mp4") {
-    await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-preset', 'veryfast', 'output.mp4');
-    const out = ffmpeg.FS('readFile', 'output.mp4');
-    const mp4Blob = new Blob([out.buffer], { type: 'video/mp4' });
-    const url = URL.createObjectURL(mp4Blob);
-    downloadBtn.href = url;
-    downloadBtn.download = "output.mp4";
-    downloadBtn.style.display = "block";
-  } else if (format === "gif") {
-    await ffmpeg.run('-i', 'input.webm', '-vf', 'fps=15,scale=480:-1:flags=lanczos', 'output.gif');
-    const out = ffmpeg.FS('readFile', 'output.gif');
-    const gifBlob = new Blob([out.buffer], { type: 'image/gif' });
-    const url = URL.createObjectURL(gifBlob);
-    downloadBtn.href = url;
-    downloadBtn.download = "output.gif";
-    downloadBtn.style.display = "block";
+  function detectMime() {
+    try {
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) return 'video/webm;codecs=vp9';
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) return 'video/webm;codecs=vp8';
+    } catch(e){}
+    return 'video/webm';
   }
-});
+
+  function bitrateForSize(size) {
+    if (size >= 2160) return 25_000_000;
+    if (size >= 1080) return 12_000_000;
+    return 5_000_000;
+  }
+
+  async function ensureFFmpeg() {
+    if (!window._ffmpegInstance) {
+      const { createFFmpeg } = FFmpeg;
+      window._ffmpegInstance = createFFmpeg({ log: true });
+      // optional: setProgress callback if available
+      try {
+        window._ffmpegInstance.setProgress && window._ffmpegInstance.setProgress(({ ratio })=>{
+          setProgress(ratio*100, 'Konversi ' + Math.round(ratio*100) + '%');
+        });
+      } catch(e){}
+      await window._ffmpegInstance.load();
+    }
+    return window._ffmpegInstance;
+  }
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      if (!img || !img.complete || img.naturalWidth === 0) {
+        alert('Pilih gambar dulu dan tunggu sampai preview terbaca.');
+        return;
+      }
+
+      startBtn.disabled = true;
+      startBtn.style.opacity = 0.6;
+      progressContainer.style.display = 'block';
+      setProgress(0, 'Merekam 0%');
+
+      const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
+      const size = Number(qualitySelect.value);
+      const format = formatSelect.value;
+      const fps = 30;
+      drawImage(size);
+
+      const mimeType = detectMime();
+      const bitrate = bitrateForSize(size);
+      const stream = canvas.captureStream(fps);
+
+      let recorder;
+      let chunks = [];
+      try {
+        recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitrate });
+      } catch (err) {
+        try { recorder = new MediaRecorder(stream); }
+        catch (err2) { throw new Error('MediaRecorder tidak tersedia di browser ini.'); }
+      }
+
+      recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+      recorder.start();
+      console.log('Recorder started => mime:', mimeType, 'bitrate:', bitrate);
+
+      const startTime = performance.now();
+      function recordLoop(now) {
+        drawImage(size);
+        const pct = Math.min(1, (now - startTime) / (durationSec * 1000));
+        setProgress(pct*100, 'Merekam ' + Math.floor(pct*100) + '%');
+        if (pct < 1) requestAnimationFrame(recordLoop);
+      }
+      requestAnimationFrame(recordLoop);
+
+      await new Promise(r=>setTimeout(r, durationSec*1000));
+      recorder.stop();
+      await stopPromise;
+
+      const webmBlob = new Blob(chunks, { type: mimeType });
+      console.log('Recording finished. size:', webmBlob.size);
+
+      // revoke old URL if any
+      if (lastDownloadURL) { URL.revokeObjectURL(lastDownloadURL); lastDownloadURL = null; }
+
+      if (format === 'webm') {
+        const url = URL.createObjectURL(webmBlob);
+        lastDownloadURL = url;
+        downloadBtn.href = url;
+        downloadBtn.download = `output_${size}p.webm`;
+        downloadBtn.textContent = 'Unduh';
+        downloadBtn.style.display = 'inline-flex'; // <-- important fix
+        setProgress(100, 'Selesai');
+      } else {
+        // convert with ffmpeg
+        setProgress(0, 'Mempersiapkan konversi...');
+        const ffmpeg = await ensureFFmpeg();
+        ffmpeg.FS('writeFile', 'input.webm', new Uint8Array(await webmBlob.arrayBuffer()));
+
+        if (format === 'mp4') {
+          await ffmpeg.run('-i','input.webm','-c:v','libx264','-preset','veryfast','-crf','18','-movflags','+faststart','output.mp4');
+          const out = ffmpeg.FS('readFile','output.mp4');
+          const mp4Blob = new Blob([out.buffer], { type: 'video/mp4' });
+          const url = URL.createObjectURL(mp4Blob);
+          lastDownloadURL = url;
+          downloadBtn.href = url;
+          downloadBtn.download = `output_${size}p.mp4`;
+          downloadBtn.textContent = 'Unduh';
+          downloadBtn.style.display = 'inline-flex'; // <-- important fix
+          setProgress(100, 'Selesai');
+        } else if (format === 'gif') {
+          const scaleFilter = size > 480 ? 'scale=480:-1:flags=lanczos' : `scale=${size}:-1:flags=lanczos`;
+          await ffmpeg.run('-i','input.webm','-vf',`fps=15,${scaleFilter}`,'output.gif');
+          const out = ffmpeg.FS('readFile','output.gif');
+          const gifBlob = new Blob([out.buffer], { type: 'image/gif' });
+          const url = URL.createObjectURL(gifBlob);
+          lastDownloadURL = url;
+          downloadBtn.href = url;
+          downloadBtn.download = `output_${size}p.gif`;
+          downloadBtn.textContent = 'Unduh';
+          downloadBtn.style.display = 'inline-flex'; // <-- important fix
+          setProgress(100, 'Selesai');
+        }
+
+        // optional cleanup inside ffmpeg FS
+        try { ffmpeg.FS('unlink', 'input.webm'); } catch(e){}
+        try { ffmpeg.FS('unlink', 'output.mp4'); } catch(e){}
+        try { ffmpeg.FS('unlink', 'output.gif'); } catch(e){}
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi error: ' + (err.message || err));
+    } finally {
+      startBtn.disabled = false;
+      startBtn.style.opacity = 1;
+    }
+  });
+
+})();
 </script>
 </body>
 </html>
