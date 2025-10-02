@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Story Editor</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    .container { max-width: 900px; margin: auto; display: flex; gap: 20px; }
+    .controls { flex: 1; background: #fff; padding: 15px; border-radius: 8px; }
+    .preview { flex: 2; background: #000; position: relative; overflow: hidden; border-radius: 8px; }
+    canvas { width: 100%; height: auto; background: #222; }
+    .mt { margin-top: 15px; }
+    label { display: block; margin-bottom: 5px; font-size: 14px; }
+    input[type=file], input[type=range], select, button {
+      width: 100%; padding: 6px; margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Simple Story Editor (HTML/JS)</h2>
+  <div class="container">
+    <div class="controls">
+      <label>Unggah Gambar / Video:</label>
+      <input type="file" id="mediaInput" accept="image/*,video/*">
+
+      <label>Unggah Musik (.mp3):</label>
+      <input type="file" id="audioInput" accept="audio/*">
+
+      <label>Zoom:</label>
+      <input type="range" id="zoomRange" min="1" max="3" step="0.01" value="1">
+
+      <button id="playBtn">▶ Play Musik</button>
+      <button id="pauseBtn">⏸ Pause Musik</button>
+    </div>
+
+    <div class="preview">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Elemen media tersembunyi -->
+  <video id="video" style="display:none;" muted></video>
+  <img id="image" style="display:none;">
+  <audio id="audio" style="display:none;" controls></audio>
+
+  <script>
+    const mediaInput = document.getElementById('mediaInput');
+    const audioInput = document.getElementById('audioInput');
+    const zoomRange = document.getElementById('zoomRange');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+
+    const video = document.getElementById('video');
+    const image = document.getElementById('image');
+    const audio = document.getElementById('audio');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let mediaType = null;
+    let zoom = 1;
+
+    mediaInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+
+      if (file.type.startsWith('video')) {
+        mediaType = 'video';
+        video.src = url;
+        video.play();
+        loopDraw();
+      } else {
+        mediaType = 'image';
+        image.src = url;
+        image.onload = () => draw();
+      }
+    });
+
+    audioInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      audio.src = url;
+    });
+
+    zoomRange.addEventListener('input', e => {
+      zoom = parseFloat(e.target.value);
+      draw();
+    });
+
+    playBtn.onclick = () => audio.play();
+    pauseBtn.onclick = () => audio.pause();
+
+    function draw() {
+      const W = 360, H = 640; // ukuran canvas story
+      canvas.width = W; canvas.height = H;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      if (mediaType === 'image' && image.complete) {
+        const iw = image.naturalWidth, ih = image.naturalHeight;
+        const scale = Math.max(W/iw, H/ih) * zoom;
+        const dw = iw * scale, dh = ih * scale;
+        const dx = (W - dw) / 2, dy = (H - dh) / 2;
+        ctx.drawImage(image, dx, dy, dw, dh);
+      }
+
+      if (mediaType === 'video' && video.readyState >= 2) {
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const scale = Math.max(W/vw, H/vh) * zoom;
+        const dw = vw * scale, dh = vh * scale;
+        const dx = (W - dw) / 2, dy = (H - dh) / 2;
+        ctx.drawImage(video, dx, dy, dw, dh);
+      }
+    }
+
+    function loopDraw() {
+      draw();
+      requestAnimationFrame(loopDraw);
+    }
+  </script>
+</body>
+</html>
