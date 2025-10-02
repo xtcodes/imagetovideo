@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image → Video Converter (MP4 HD)</title>
+<title>Image → Video Converter (Multi Format)</title>
 <style>
 body {
   font-family: sans-serif;
@@ -21,10 +21,7 @@ body {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   box-sizing: border-box;
 }
-h2 {
-  text-align: center;
-  margin-bottom: 16px;
-}
+h2 { text-align: center; margin-bottom: 16px; }
 .file-btn, .btn {
   display: inline-flex;
   justify-content: center;
@@ -66,7 +63,7 @@ h2 {
   align-items: center;
   color: #999;
 }
-.range-container, .quality-container {
+.range-container, .quality-container, .format-container {
   margin-bottom: 12px;
 }
 .progress-container {
@@ -96,7 +93,7 @@ h2 {
 </head>
 <body>
 <div class="app">
-<h2>Image → Video Converter (MP4 HD)</h2>
+<h2>Image → Video Converter (Multi Format)</h2>
 
 <div class="file-btn" id="uploadBtn">Pilih Gambar</div>
 <input type="file" id="fileInput" accept="image/*" style="display:none;">
@@ -118,6 +115,15 @@ h2 {
   </select>
 </div>
 
+<div class="format-container">
+  <label>Format Output:</label><br>
+  <select id="formatSelect">
+    <option value="mp4" selected>MP4 (H.264)</option>
+    <option value="webm">WebM (VP9)</option>
+    <option value="gif">GIF</option>
+  </select>
+</div>
+
 <button class="btn" id="startBtn">Buat Video</button>
 
 <div class="progress-container">
@@ -127,7 +133,7 @@ h2 {
   </div>
 </div>
 
-<a id="download" class="btn" download style="display:none;">Unduh Video (MP4)</a>
+<a id="download" class="btn" download style="display:none;">Unduh</a>
 
 <canvas id="canvas" style="display:none"></canvas>
 </div>
@@ -145,6 +151,7 @@ const previewContainer = document.querySelector('.preview');
 const durationRange = document.getElementById('durationRange');
 const durVal = document.getElementById('durVal');
 const qualitySelect = document.getElementById('qualitySelect');
+const formatSelect = document.getElementById('formatSelect');
 const startBtn = document.getElementById('startBtn');
 const fill = document.getElementById('fill');
 const progressText = document.getElementById('progressText');
@@ -155,7 +162,6 @@ const ctx = canvas.getContext('2d');
 
 let img = new Image();
 
-// Tombol upload trigger input
 uploadBtn.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
@@ -167,7 +173,6 @@ fileInput.addEventListener('change', e => {
     previewContainer.classList.remove('placeholder');
   };
   img.src = url;
-
   startBtn.style.display = "inline-flex";
   download.style.display = "none";
   progressContainer.style.display = "none";
@@ -209,7 +214,8 @@ async function createVideo() {
   if (!img.src) { alert("Pilih gambar dulu"); return; }
 
   const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  const size = Number(qualitySelect.value); // ambil resolusi
+  const size = Number(qualitySelect.value);
+  const format = formatSelect.value;
   canvas.width = size;
   canvas.height = size;
 
@@ -221,12 +227,11 @@ async function createVideo() {
 
   const fps = 60;
   const stream = canvas.captureStream(fps);
-
   const mimeType = "video/webm;codecs=vp9";
   let chunks = [];
   const recorder = new MediaRecorder(stream, { 
     mimeType, 
-    videoBitsPerSecond: 12_000_000 // lebih tinggi untuk kualitas bagus
+    videoBitsPerSecond: 12_000_000 
   });
 
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -249,18 +254,32 @@ async function createVideo() {
   const blob = new Blob(chunks, { type: mimeType });
   const webmData = new Uint8Array(await blob.arrayBuffer());
 
-  // 🔥 Konversi ke MP4 dengan ffmpeg.wasm
-  const ffmpeg = createFFmpeg({ log: true });
-  await ffmpeg.load();
+  let finalBlob, filename;
 
-  ffmpeg.FS('writeFile', 'input.webm', webmData);
-  await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', 'output.mp4');
-  const data = ffmpeg.FS('readFile', 'output.mp4');
+  if (format === "webm") {
+    finalBlob = blob;
+    filename = `output_${size}p.webm`;
+  } else {
+    const ffmpeg = createFFmpeg({ log: true });
+    await ffmpeg.load();
+    ffmpeg.FS('writeFile', 'input.webm', webmData);
 
-  const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
-  const url = URL.createObjectURL(mp4Blob);
+    if (format === "mp4") {
+      await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', 'output.mp4');
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      finalBlob = new Blob([data.buffer], { type: 'video/mp4' });
+      filename = `output_${size}p.mp4`;
+    } else if (format === "gif") {
+      await ffmpeg.run('-i', 'input.webm', '-vf', 'fps=15,scale=480:-1:flags=lanczos', 'output.gif');
+      const data = ffmpeg.FS('readFile', 'output.gif');
+      finalBlob = new Blob([data.buffer], { type: 'image/gif' });
+      filename = `output_${size}p.gif`;
+    }
+  }
+
+  const url = URL.createObjectURL(finalBlob);
   download.href = url;
-  download.download = `output_${size}p.mp4`;
+  download.download = filename;
 
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
