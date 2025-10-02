@@ -24,7 +24,7 @@
   .row { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
   select, input[type=range] { width:100%; }
   label { font-size:13px; color:#333; display:block; margin-bottom:6px; }
-  .progress-container { display:none; margin-top:12px; }
+  .progress-container { display:none; margin-top:12px; margin-bottom:16px; } /* tambahkan margin-bottom */
   .progress { height:20px; background:#eee; border-radius:99px; position:relative; overflow:hidden; }
   .fill { height:100%; width:0; background:linear-gradient(90deg,#2563eb,#3b82f6); transition:width 0.12s linear; }
   .progress-text { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-weight:600; font-size:13px; color:#222; }
@@ -77,7 +77,6 @@
   <canvas id="canvas" style="display:none"></canvas>
 </div>
 
-<!-- ffmpeg.wasm (digunakan jika memilih mp4 atau gif) -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
 <script>
@@ -120,7 +119,6 @@
     img = new Image();
     img.onload = () => {
       startBtn.style.display = 'block';
-      console.log('Image ready:', img.naturalWidth, 'x', img.naturalHeight);
     };
     img.onerror = () => {
       alert('Gagal memuat gambar untuk canvas. Gunakan file lain.');
@@ -180,7 +178,6 @@
     if (!window._ffmpegInstance) {
       const { createFFmpeg } = FFmpeg;
       window._ffmpegInstance = createFFmpeg({ log: true });
-      // optional: setProgress callback if available
       try {
         window._ffmpegInstance.setProgress && window._ffmpegInstance.setProgress(({ ratio })=>{
           setProgress(ratio*100, 'Konversi ' + Math.round(ratio*100) + '%');
@@ -198,8 +195,9 @@
         return;
       }
 
-      startBtn.disabled = true;
-      startBtn.style.opacity = 0.6;
+      // Sembunyikan tombol buat video setelah diklik
+      startBtn.style.display = 'none';
+
       progressContainer.style.display = 'block';
       setProgress(0, 'Merekam 0%');
 
@@ -225,7 +223,6 @@
       recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
       const stopPromise = new Promise(resolve => recorder.onstop = resolve);
       recorder.start();
-      console.log('Recorder started => mime:', mimeType, 'bitrate:', bitrate);
 
       const startTime = performance.now();
       function recordLoop(now) {
@@ -241,9 +238,7 @@
       await stopPromise;
 
       const webmBlob = new Blob(chunks, { type: mimeType });
-      console.log('Recording finished. size:', webmBlob.size);
 
-      // revoke old URL if any
       if (lastDownloadURL) { URL.revokeObjectURL(lastDownloadURL); lastDownloadURL = null; }
 
       if (format === 'webm') {
@@ -252,10 +247,9 @@
         downloadBtn.href = url;
         downloadBtn.download = `output_${size}p.webm`;
         downloadBtn.textContent = 'Unduh';
-        downloadBtn.style.display = 'inline-flex'; // <-- important fix
+        downloadBtn.style.display = 'inline-flex';
         setProgress(100, 'Selesai');
       } else {
-        // convert with ffmpeg
         setProgress(0, 'Mempersiapkan konversi...');
         const ffmpeg = await ensureFFmpeg();
         ffmpeg.FS('writeFile', 'input.webm', new Uint8Array(await webmBlob.arrayBuffer()));
@@ -269,7 +263,7 @@
           downloadBtn.href = url;
           downloadBtn.download = `output_${size}p.mp4`;
           downloadBtn.textContent = 'Unduh';
-          downloadBtn.style.display = 'inline-flex'; // <-- important fix
+          downloadBtn.style.display = 'inline-flex';
           setProgress(100, 'Selesai');
         } else if (format === 'gif') {
           const scaleFilter = size > 480 ? 'scale=480:-1:flags=lanczos' : `scale=${size}:-1:flags=lanczos`;
@@ -281,11 +275,10 @@
           downloadBtn.href = url;
           downloadBtn.download = `output_${size}p.gif`;
           downloadBtn.textContent = 'Unduh';
-          downloadBtn.style.display = 'inline-flex'; // <-- important fix
+          downloadBtn.style.display = 'inline-flex';
           setProgress(100, 'Selesai');
         }
 
-        // optional cleanup inside ffmpeg FS
         try { ffmpeg.FS('unlink', 'input.webm'); } catch(e){}
         try { ffmpeg.FS('unlink', 'output.mp4'); } catch(e){}
         try { ffmpeg.FS('unlink', 'output.gif'); } catch(e){}
@@ -294,9 +287,7 @@
     } catch (err) {
       console.error(err);
       alert('Terjadi error: ' + (err.message || err));
-    } finally {
-      startBtn.disabled = false;
-      startBtn.style.opacity = 1;
+      startBtn.style.display = 'block'; // tampilkan lagi kalau error
     }
   });
 
