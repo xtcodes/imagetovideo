@@ -19,9 +19,11 @@ body {
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-sizing: border-box;
 }
 h2 { text-align: center; margin-bottom: 16px; }
 
+/* Tombol */
 .file-btn, .btn {
   display: inline-flex;
   justify-content: center;
@@ -32,16 +34,16 @@ h2 { text-align: center; margin-bottom: 16px; }
   color: #fff;
   font-weight: 500;
   cursor: pointer;
-  width: auto;       /* jangan full, otomatis pas */
-  min-width: 150px;  /* minimal */
+  width: 100%;       /* ✅ penuh container */
+  box-sizing: border-box;
   text-align: center;
   margin-bottom: 12px;
   text-decoration: none;
   border: none;
-  outline: none;
 }
 .file-btn:hover, .btn:hover { background: #1d4ed8; }
 
+/* Preview */
 .preview {
   width: 100%;
   aspect-ratio: 1/1;
@@ -64,7 +66,7 @@ h2 { text-align: center; margin-bottom: 16px; }
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  display: none; /* default disembunyikan */
+  display: none; /* default sembunyi, muncul setelah pilih gambar */
 }
 
 .range-container, .quality-container, .format-container { margin-bottom: 12px; }
@@ -78,9 +80,11 @@ h2 { text-align: center; margin-bottom: 16px; }
 <div class="app">
 <h2>Image → Video Converter</h2>
 
+<!-- Tombol unggah -->
 <button class="file-btn" id="uploadBtn">Pilih Gambar</button>
 <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
+<!-- Preview -->
 <div class="preview"><img id="preview" alt="preview"></div>
 
 <div class="range-container">
@@ -112,7 +116,7 @@ h2 { text-align: center; margin-bottom: 16px; }
 <div class="progress-container">
   <div class="progress">
     <div class="fill" id="fill"></div>
-    <div class="progress-text" id="progressText">0%</div>
+    <div class="progress-text" id="progressText">0%</</div>
   </div>
 </div>
 
@@ -120,43 +124,32 @@ h2 { text-align: center; margin-bottom: 16px; }
 <canvas id="canvas" style="display:none"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 <script>
-const { createFFmpeg } = FFmpeg;
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
 const previewBox = document.querySelector('.preview');
-const durationRange = document.getElementById('durationRange');
-const durVal = document.getElementById('durVal');
-const qualitySelect = document.getElementById('qualitySelect');
-const formatSelect = document.getElementById('formatSelect');
 const startBtn = document.getElementById('startBtn');
-const fill = document.getElementById('fill');
-const progressText = document.getElementById('progressText');
-const progressContainer = document.querySelector('.progress-container');
-const download = document.getElementById('download');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
 
 let img = null;
 
-// Tombol upload
+// Tombol upload → buka file input
 uploadBtn.addEventListener('click', () => fileInput.click());
 
+// Saat pilih gambar
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
   const url = URL.createObjectURL(f);
 
-  // tampilkan preview <img>
+  // tampilkan gambar di preview
   preview.src = url;
   preview.style.display = "block";
-  previewBox.classList.remove('placeholder');
-  previewBox.style.background = "#0000"; // hapus abu-abu
+  previewBox.style.background = "#0000"; // hilangkan background abu
+  previewBox.removeAttribute("data-empty");
   previewBox.querySelector("::after"); // hilangkan teks "No Image"
 
-  // untuk canvas
+  // buat image untuk canvas
   img = new Image();
   img.onload = () => {
     startBtn.style.display = "inline-flex";
@@ -164,108 +157,7 @@ fileInput.addEventListener('change', e => {
   img.src = url;
 
   uploadBtn.textContent = f.name;
-  download.style.display = "none";
-  progressContainer.style.display = "none";
-  fill.style.width = "0%";
-  progressText.textContent = "0%";
 });
-
-// slider durasi
-durationRange.addEventListener('input', () => {
-  durVal.textContent = durationRange.value + " detik";
-});
-
-function drawImageSquareWithBlur() {
-  const cw = canvas.width, ch = canvas.height;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, cw, ch);
-  if (!img || img.naturalWidth === 0) return;
-
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  const scale = Math.min(cw / iw, ch / ih);
-  const dw = iw * scale, dh = ih * scale;
-  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-
-  ctx.save();
-  ctx.filter = 'blur(40px)';
-  ctx.drawImage(img, 0, 0, cw, ch);
-  ctx.restore();
-
-  ctx.drawImage(img, dx, dy, dw, dh);
-}
-
-async function createVideo() {
-  if (!img || img.naturalWidth === 0) {
-    alert("Pilih gambar dulu!");
-    return;
-  }
-  const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  const size = Number(qualitySelect.value);
-  const format = formatSelect.value;
-
-  canvas.width = size;
-  canvas.height = size;
-
-  startBtn.style.display = "none";
-  progressContainer.style.display = "block";
-  fill.style.width = "0%";
-  progressText.textContent = "0%";
-  download.style.display = "none";
-
-  const fps = 30;
-  const stream = canvas.captureStream(fps);
-  let chunks = [];
-  const recorder = new MediaRecorder(stream, { mimeType:"video/webm;codecs=vp9", videoBitsPerSecond: 8_000_000 });
-  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-  recorder.start();
-
-  const start = performance.now();
-  function loop(now) {
-    drawImageSquareWithBlur();
-    const pct = Math.min(1, (now - start) / (durationSec * 1000));
-    fill.style.width = (pct*100) + "%";
-    progressText.textContent = Math.floor(pct*100) + "%";
-    if (pct < 1) requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  await new Promise(r => setTimeout(r, durationSec*1000));
-  recorder.stop();
-  await new Promise(r => recorder.onstop = r);
-
-  const blob = new Blob(chunks, { type: "video/webm" });
-  const webmData = new Uint8Array(await blob.arrayBuffer());
-
-  let finalBlob, filename;
-  if (format === "webm") {
-    finalBlob = blob;
-    filename = `output_${size}p.webm`;
-  } else {
-    const ffmpeg = createFFmpeg({ log: true });
-    await ffmpeg.load();
-    ffmpeg.FS('writeFile', 'input.webm', webmData);
-
-    if (format === "mp4") {
-      await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', 'output.mp4');
-      const data = ffmpeg.FS('readFile', 'output.mp4');
-      finalBlob = new Blob([data.buffer], { type: 'video/mp4' });
-      filename = `output_${size}p.mp4`;
-    } else if (format === "gif") {
-      await ffmpeg.run('-i', 'input.webm', '-vf', 'fps=15,scale=480:-1:flags=lanczos', 'output.gif');
-      const data = ffmpeg.FS('readFile', 'output.gif');
-      finalBlob = new Blob([data.buffer], { type: 'image/gif' });
-      filename = `output.gif`;
-    }
-  }
-
-  const url = URL.createObjectURL(finalBlob);
-  download.href = url;
-  download.download = filename;
-
-  progressContainer.style.display = "none";
-  download.style.display = "inline-flex";
-}
-startBtn.addEventListener('click', createVideo);
 </script>
 </body>
 </html>
