@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image → Video Converter (Fixed)</title>
+<title>Image → Video Converter (Multi Format, Fixed)</title>
 <style>
 body {
   font-family: sans-serif;
@@ -37,6 +37,11 @@ h2 { text-align: center; margin-bottom: 16px; }
   text-align: center;
   margin-bottom: 12px;
   text-decoration: none;
+  border: none;           /* hilangkan border hitam */
+  outline: none;          /* hilangkan outline */
+}
+.file-btn:hover, .btn:hover {
+  background: #1d4ed8;
 }
 .preview {
   width: 100%;
@@ -46,12 +51,14 @@ h2 { text-align: center; margin-bottom: 16px; }
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .preview img {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  display: none; /* default tersembunyi supaya tidak ada icon rusak */
 }
 .preview.placeholder::after {
   content: "No Image";
@@ -63,7 +70,7 @@ h2 { text-align: center; margin-bottom: 16px; }
   align-items: center;
   color: #999;
 }
-.range-container {
+.range-container, .quality-container, .format-container {
   margin-bottom: 12px;
 }
 .progress-container {
@@ -95,24 +102,37 @@ h2 { text-align: center; margin-bottom: 16px; }
 <div class="app">
 <h2>Image → Video Converter</h2>
 
-<!-- Tombol upload -->
 <div class="file-btn" id="uploadBtn">Pilih Gambar</div>
 <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
-<!-- Preview -->
 <div class="preview placeholder"><img id="preview" alt="preview" /></div>
 
-<!-- Durasi -->
 <div class="range-container">
   <label>Durasi (detik, max 60)</label><br>
   <input type="range" id="durationRange" min="1" max="60" value="10">
   <span id="durVal">10 detik</span>
 </div>
 
-<!-- Tombol buat video -->
+<div class="quality-container">
+  <label>Kualitas Video:</label><br>
+  <select id="qualitySelect">
+    <option value="720">HD (720p)</option>
+    <option value="1080" selected>Full HD (1080p)</option>
+    <option value="2160">4K (2160p)</option>
+  </select>
+</div>
+
+<div class="format-container">
+  <label>Format Output:</label><br>
+  <select id="formatSelect">
+    <option value="mp4" selected>MP4 (H.264)</option>
+    <option value="webm">WebM (VP9)</option>
+    <option value="gif">GIF</option>
+  </select>
+</div>
+
 <button class="btn" id="startBtn" style="display:none;">Buat Video</button>
 
-<!-- Progress -->
 <div class="progress-container">
   <div class="progress">
     <div class="fill" id="fill"></div>
@@ -120,20 +140,23 @@ h2 { text-align: center; margin-bottom: 16px; }
   </div>
 </div>
 
-<!-- Tombol download -->
-<a id="download" class="btn" download style="display:none;">Unduh Video</a>
+<a id="download" class="btn" download style="display:none;">Unduh</a>
 
-<!-- Canvas -->
 <canvas id="canvas" style="display:none"></canvas>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 <script>
+const { createFFmpeg } = FFmpeg;
+
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
 const preview = document.getElementById('preview');
 const previewContainer = document.querySelector('.preview');
 const durationRange = document.getElementById('durationRange');
 const durVal = document.getElementById('durVal');
+const qualitySelect = document.getElementById('qualitySelect');
+const formatSelect = document.getElementById('formatSelect');
 const startBtn = document.getElementById('startBtn');
 const fill = document.getElementById('fill');
 const progressText = document.getElementById('progressText');
@@ -142,27 +165,27 @@ const download = document.getElementById('download');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-let img = null;  // simpan object gambar
+let img = null;
 
-// Trigger input file
+// Upload trigger
 uploadBtn.addEventListener('click', () => fileInput.click());
 
-// Saat pilih file
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
-
   const url = URL.createObjectURL(f);
-  img = new Image(); // reset object baru setiap kali ganti file
+
+  img = new Image();
   img.onload = () => {
     preview.src = url;
+    preview.style.display = "block";   // tampilkan img hanya saat sudah load
     previewContainer.classList.remove('placeholder');
     startBtn.style.display = "inline-flex";
-    console.log("Gambar siap:", img.naturalWidth, "x", img.naturalHeight);
   };
   img.onerror = () => {
     alert("Gagal memuat gambar!");
     preview.src = "";
+    preview.style.display = "none";
     previewContainer.classList.add('placeholder');
     startBtn.style.display = "none";
   };
@@ -175,51 +198,41 @@ fileInput.addEventListener('change', e => {
   progressText.textContent = "0%";
 });
 
-// Update durasi
+// durasi slider
 durationRange.addEventListener('input', () => {
   durVal.textContent = durationRange.value + " detik";
 });
 
-// Gambar image dengan blur background
 function drawImageSquareWithBlur() {
-  const cw = canvas.width;
-  const ch = canvas.height;
+  const cw = canvas.width, ch = canvas.height;
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, cw, ch);
 
-  // Cek apakah gambar sudah siap
-  if (!img || !img.complete || img.naturalWidth === 0) {
-    return; // jangan render
-  }
+  if (!img || !img.complete || img.naturalWidth === 0) return;
 
-  const iw = img.naturalWidth;
-  const ih = img.naturalHeight;
-
+  const iw = img.naturalWidth, ih = img.naturalHeight;
   const scale = Math.min(cw / iw, ch / ih);
-  const dw = iw * scale;
-  const dh = ih * scale;
-  const dx = (cw - dw) / 2;
-  const dy = (ch - dh) / 2;
+  const dw = iw * scale, dh = ih * scale;
+  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
 
-  // blur background
   ctx.save();
   ctx.filter = 'blur(40px)';
-  ctx.drawImage(img, 0, 0, cw, ch); 
+  ctx.drawImage(img, 0, 0, cw, ch);
   ctx.restore();
 
-  // gambar utama
   ctx.drawImage(img, dx, dy, dw, dh);
 }
 
-// Buat video
 async function createVideo() {
   if (!img || img.naturalWidth === 0) {
-    alert("Pilih gambar dulu dan tunggu sampai preview muncul!");
+    alert("Pilih gambar dulu!");
     return;
   }
 
   const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  const size = 1080; // default square
+  const size = Number(qualitySelect.value);
+  const format = formatSelect.value;
+
   canvas.width = size;
   canvas.height = size;
 
@@ -231,13 +244,8 @@ async function createVideo() {
 
   const fps = 30;
   const stream = canvas.captureStream(fps);
-  const mimeType = "video/webm;codecs=vp9";
   let chunks = [];
-  const recorder = new MediaRecorder(stream, { 
-    mimeType, 
-    videoBitsPerSecond: 8_000_000 
-  });
-
+  const recorder = new MediaRecorder(stream, { mimeType:"video/webm;codecs=vp9", videoBitsPerSecond: 8_000_000 });
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   recorder.start();
 
@@ -255,10 +263,35 @@ async function createVideo() {
   recorder.stop();
   await new Promise(r => recorder.onstop = r);
 
-  const blob = new Blob(chunks, { type: mimeType });
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const webmData = new Uint8Array(await blob.arrayBuffer());
+
+  let finalBlob, filename;
+
+  if (format === "webm") {
+    finalBlob = blob;
+    filename = `output_${size}p.webm`;
+  } else {
+    const ffmpeg = createFFmpeg({ log: true });
+    await ffmpeg.load();
+    ffmpeg.FS('writeFile', 'input.webm', webmData);
+
+    if (format === "mp4") {
+      await ffmpeg.run('-i', 'input.webm', '-c:v', 'libx264', '-crf', '18', '-preset', 'veryfast', 'output.mp4');
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      finalBlob = new Blob([data.buffer], { type: 'video/mp4' });
+      filename = `output_${size}p.mp4`;
+    } else if (format === "gif") {
+      await ffmpeg.run('-i', 'input.webm', '-vf', 'fps=15,scale=480:-1:flags=lanczos', 'output.gif');
+      const data = ffmpeg.FS('readFile', 'output.gif');
+      finalBlob = new Blob([data.buffer], { type: 'image/gif' });
+      filename = `output.gif`;
+    }
+  }
+
+  const url = URL.createObjectURL(finalBlob);
   download.href = url;
-  download.download = "output_hd.webm";
+  download.download = filename;
 
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
