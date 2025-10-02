@@ -66,7 +66,7 @@ h2 {
   align-items: center;
   color: #999;
 }
-.range-container {
+.range-container, .quality-container {
   margin-bottom: 12px;
 }
 .progress-container {
@@ -109,6 +109,15 @@ h2 {
   <span id="durVal">10 detik</span>
 </div>
 
+<div class="quality-container">
+  <label>Kualitas Video:</label><br>
+  <select id="qualitySelect">
+    <option value="720">HD (720p)</option>
+    <option value="1080" selected>Full HD (1080p)</option>
+    <option value="2160">4K (2160p)</option>
+  </select>
+</div>
+
 <button class="btn" id="startBtn">Buat Video</button>
 
 <div class="progress-container">
@@ -127,7 +136,7 @@ h2 {
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
 
 <script>
-const { createFFmpeg, fetchFile } = FFmpeg;
+const { createFFmpeg } = FFmpeg;
 
 const uploadBtn = document.getElementById('uploadBtn');
 const fileInput = document.getElementById('fileInput');
@@ -135,6 +144,7 @@ const preview = document.getElementById('preview');
 const previewContainer = document.querySelector('.preview');
 const durationRange = document.getElementById('durationRange');
 const durVal = document.getElementById('durVal');
+const qualitySelect = document.getElementById('qualitySelect');
 const startBtn = document.getElementById('startBtn');
 const fill = document.getElementById('fill');
 const progressText = document.getElementById('progressText');
@@ -199,9 +209,9 @@ async function createVideo() {
   if (!img.src) { alert("Pilih gambar dulu"); return; }
 
   const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
-  const squareSize = 1080;
-  canvas.width = squareSize;
-  canvas.height = squareSize;
+  const size = Number(qualitySelect.value); // ambil resolusi
+  canvas.width = size;
+  canvas.height = size;
 
   startBtn.style.display = "none";
   progressContainer.style.display = "block";
@@ -216,7 +226,7 @@ async function createVideo() {
   let chunks = [];
   const recorder = new MediaRecorder(stream, { 
     mimeType, 
-    videoBitsPerSecond: 8_000_000 
+    videoBitsPerSecond: 12_000_000 // lebih tinggi untuk kualitas bagus
   });
 
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
@@ -250,7 +260,7 @@ async function createVideo() {
   const mp4Blob = new Blob([data.buffer], { type: 'video/mp4' });
   const url = URL.createObjectURL(mp4Blob);
   download.href = url;
-  download.download = "output_hd.mp4";
+  download.download = `output_${size}p.mp4`;
 
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
