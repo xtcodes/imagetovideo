@@ -44,7 +44,7 @@
     .preview {
       width: 100%;
       position: relative;
-      padding-top: 100%; /* persegi (1:1) */
+      padding-top: 100%;
       background: #000;
       border-radius: 8px;
       overflow: hidden;
@@ -76,17 +76,16 @@
     .download-btn {
       background: #dc2626;
       color: white;
+      display: none; /* ⬅ disembunyikan dari awal */
       text-decoration: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      display: none; /* ⬅️ tidak tampil di awal */
     }
     .progress {
       width: 100%; background: #eee;
       height: 10px; border-radius: 5px;
-      margin-top: 10px; overflow: hidden;
-      display: none;
+      margin-top: 10px; overflow: hidden; display: none;
     }
     .progress-bar {
       height: 100%; width: 0%; background: #16a34a;
@@ -95,135 +94,131 @@
   </style>
 </head>
 <body>
-  <div class="app">
-    <h2>Image → Video Converter (WebM 1:1 Square)</h2>
+<div class="app">
+  <h2>Image → Video Converter (WebM 1:1 Square)</h2>
 
-    <label class="file-btn">
-      Pilih Gambar
-      <input type="file" id="fileInput" accept="image/*">
-    </label>
+  <label class="file-btn">
+    Pilih Gambar
+    <input type="file" id="fileInput" accept="image/*">
+  </label>
 
-    <div class="preview" id="preview"></div>
+  <div class="preview" id="preview"></div>
 
-    <div class="controls">
-      <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
-      <input type="range" id="duration" value="5" min="1" max="60">
-    </div>
-
-    <!-- hanya tombol buat video yang tampil -->
-    <button class="start-btn" id="startBtn">Buat Video</button>
-
-    <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-
-    <!-- tombol download disembunyikan di awal -->
-    <a id="downloadBtn" class="download-btn" download="output.webm">Download Video</a>
+  <div class="controls">
+    <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
+    <input type="range" id="duration" value="5" min="1" max="60">
   </div>
 
-  <script>
-    const fileInput = document.getElementById("fileInput");
-    const preview = document.getElementById("preview");
-    const startBtn = document.getElementById("startBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const durationInput = document.getElementById("duration");
-    const durationValue = document.getElementById("durationValue");
-    const progress = document.getElementById("progress");
-    const progressBar = document.getElementById("progressBar");
+  <button class="start-btn" id="startBtn">Buat Video</button>
+  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <a id="downloadBtn" class="download-btn" download="output.webm">Download Video</a>
+</div>
 
-    let imageFile = null;
+<script>
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const startBtn = document.getElementById("startBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const durationInput = document.getElementById("duration");
+const durationValue = document.getElementById("durationValue");
+const progress = document.getElementById("progress");
+const progressBar = document.getElementById("progressBar");
 
-    // preview gambar
-    fileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      imageFile = file;
-      preview.innerHTML = "";
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(file);
-      preview.appendChild(img);
+let imageFile = null;
 
-      // reset tombol
-      startBtn.style.display = "block";
-      downloadBtn.style.display = "none";
-    });
+// preview gambar
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  imageFile = file;
+  preview.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = URL.createObjectURL(file);
+  preview.appendChild(img);
 
-    // update slider durasi
-    durationInput.addEventListener("input", () => {
-      durationValue.textContent = durationInput.value;
-    });
+  // Reset tombol saat pilih gambar baru
+  startBtn.style.display = "block";
+  downloadBtn.style.display = "none";
+});
 
-    startBtn.addEventListener("click", async () => {
-      if (!imageFile) {
-        alert("Pilih gambar dulu!");
-        return;
-      }
+// update nilai slider
+durationInput.addEventListener("input", () => {
+  durationValue.textContent = durationInput.value;
+});
 
-      const duration = parseInt(durationInput.value, 10) || 5;
+startBtn.addEventListener("click", async () => {
+  if (!imageFile) {
+    alert("Pilih gambar dulu!");
+    return;
+  }
 
-      startBtn.disabled = true;
-      startBtn.textContent = "Memproses...";
-      progress.style.display = "block";
-      progressBar.style.width = "0%";
-      downloadBtn.style.display = "none";
+  const duration = parseInt(durationInput.value, 10) || 5;
 
-      // buat canvas square
-      const canvas = document.createElement("canvas");
-      canvas.width = 1920;
-      canvas.height = 1920;
-      const ctx = canvas.getContext("2d");
+  startBtn.disabled = true;
+  startBtn.textContent = "Memproses...";
+  progress.style.display = "block";
+  progressBar.style.width = "0%";
+  downloadBtn.style.display = "none";
 
-      const img = new Image();
-      img.src = URL.createObjectURL(imageFile);
+  // buat canvas square
+  const canvas = document.createElement("canvas");
+  canvas.width = 1920;
+  canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
 
-      img.onload = () => {
-        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-        const x = (canvas.width - img.width * scale) / 2;
-        const y = (canvas.height - img.height * scale) / 2;
+  const img = new Image();
+  img.src = URL.createObjectURL(imageFile);
 
-        function drawFrame() {
-          ctx.fillStyle = "#000";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        }
+  img.onload = () => {
+    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+    const x = (canvas.width - img.width * scale) / 2;
+    const y = (canvas.height - img.height * scale) / 2;
 
-        const stream = canvas.captureStream(30);
-        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+    function drawFrame() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+    }
 
-        let chunks = [];
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunks.push(e.data);
-        };
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
 
-        recorder.onstop = () => {
-          const blob = new Blob(chunks, { type: "video/webm" });
-          const url = URL.createObjectURL(blob);
-          downloadBtn.href = url;
+    let chunks = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
 
-          // setelah selesai → tampilkan tombol download
-          startBtn.style.display = "none";
-          downloadBtn.style.display = "block";
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      downloadBtn.href = url;
 
-          startBtn.disabled = false;
-          startBtn.textContent = "Buat Video";
-          progress.style.display = "none";
-        };
+      // tampilkan download, sembunyikan tombol buat video
+      startBtn.style.display = "none";
+      downloadBtn.style.display = "block";
 
-        let elapsed = 0;
-        const total = duration * 1000;
-        const step = 100;
+      startBtn.disabled = false;
+      startBtn.textContent = "Buat Video";
+      progress.style.display = "none";
+    };
 
-        const interval = setInterval(() => {
-          drawFrame();
-          elapsed += step;
-          progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
-        }, step);
+    let elapsed = 0;
+    const total = duration * 1000;
+    const step = 100;
 
-        recorder.start();
-        setTimeout(() => {
-          clearInterval(interval);
-          recorder.stop();
-        }, duration * 1000);
-      };
-    });
-  </script>
+    const interval = setInterval(() => {
+      drawFrame();
+      elapsed += step;
+      progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
+    }, step);
+
+    recorder.start();
+    setTimeout(() => {
+      clearInterval(interval);
+      recorder.stop();
+    }, duration * 1000);
+  };
+});
+</script>
 </body>
 </html>
