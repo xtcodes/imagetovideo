@@ -23,19 +23,23 @@ body {
 }
 h2 { text-align: center; margin-bottom: 16px; }
 .file-btn {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
   justify-content: center;
+  align-items: center;
   padding: 12px 16px;
   border-radius: 8px;
   background: #2563eb;
   color: #fff;
   font-weight: 500;
   cursor: pointer;
-  width: 100%;
-  text-align: center;
+  width: 100%;           /* selalu full container */
+  box-sizing: border-box;
+  white-space: nowrap;   /* cegah teks pecah baris */
+  overflow: hidden;      /* sembunyikan teks kelebihan */
+  text-overflow: ellipsis; /* kasih "..." kalau kepanjangan */
   margin-bottom: 12px;
 }
+
 input[type="file"] { display: none; }
 .preview {
   width: 100%;
