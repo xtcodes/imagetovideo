@@ -1,226 +1,229 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Image → Video Converter (WebM Square 1:1)</title>
-<style>
-body {
-  font-family: sans-serif;
-  background: #f4f8fd;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-}
-.app {
-  width: 100%;
-  max-width: 600px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  box-sizing: border-box;
-}
-h2 { text-align: center; margin-bottom: 16px; }
-.file-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
-  text-align: center;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-input[type="file"] { display: none; }
-.preview {
-  width: 100%;
-  position: relative;
-  padding-top: 100%;   /* persegi (1:1) */
-  background: #000;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-.preview img {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: contain;
-  background: #000;
-}
-.controls { margin-bottom: 12px; }
-.controls label { display: block; margin-bottom: 6px; font-size: 14px; }
-.controls input[type="range"] {
-  width: 100%;
-}
-button, a.download-btn {
-  padding: 12px;
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  margin-top: 10px;
-  text-align: center;
-  display: block;
-  box-sizing: border-box;
-}
-.start-btn { background: #16a34a; color: white; }
-.download-btn {
-  background: #dc2626;
-  color: white;
-  display: none;
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.progress {
-  width: 100%; background: #eee;
-  height: 10px; border-radius: 5px;
-  margin-top: 10px; overflow: hidden; display: none;
-}
-.progress-bar {
-  height: 100%; width: 0%; background: #16a34a;
-  transition: width 0.3s;
-}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Image → Video Converter (WebM Square 1:1)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f8fd;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+    }
+    h2 { text-align: center; margin-bottom: 16px; }
+    .file-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 12px;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    input[type="file"] { display: none; }
+    .preview {
+      width: 100%;
+      position: relative;
+      padding-top: 100%; /* persegi (1:1) */
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .preview img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .controls { margin-bottom: 12px; }
+    .controls label { display: block; margin-bottom: 6px; font-size: 14px; }
+    .controls input[type="range"] { width: 100%; }
+    button, a.download-btn {
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-top: 10px;
+      text-align: center;
+      display: block;
+      box-sizing: border-box;
+    }
+    .start-btn { background: #16a34a; color: white; }
+    .download-btn {
+      background: #dc2626;
+      color: white;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: none; /* ⬅️ tidak tampil di awal */
+    }
+    .progress {
+      width: 100%; background: #eee;
+      height: 10px; border-radius: 5px;
+      margin-top: 10px; overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%; width: 0%; background: #16a34a;
+      transition: width 0.3s;
+    }
+  </style>
 </head>
 <body>
-<div class="app">
-  <h2>Image → Video Converter (WebM 1:1 Square)</h2>
+  <div class="app">
+    <h2>Image → Video Converter (WebM 1:1 Square)</h2>
 
-  <label class="file-btn">
-    Pilih Gambar
-    <input type="file" id="fileInput" accept="image/*">
-  </label>
+    <label class="file-btn">
+      Pilih Gambar
+      <input type="file" id="fileInput" accept="image/*">
+    </label>
 
-  <div class="preview" id="preview"></div>
+    <div class="preview" id="preview"></div>
 
-  <div class="controls">
-    <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
-    <input type="range" id="duration" value="5" min="1" max="60">
+    <div class="controls">
+      <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
+      <input type="range" id="duration" value="5" min="1" max="60">
+    </div>
+
+    <!-- hanya tombol buat video yang tampil -->
+    <button class="start-btn" id="startBtn">Buat Video</button>
+
+    <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+    <!-- tombol download disembunyikan di awal -->
+    <a id="downloadBtn" class="download-btn" download="output.webm">Download Video</a>
   </div>
 
-  <button class="start-btn" id="startBtn">Buat Video</button>
-  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-  <a id="downloadBtn" class="download-btn" download="output.webm">Download Video</a>
-</div>
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("preview");
+    const startBtn = document.getElementById("startBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const durationInput = document.getElementById("duration");
+    const durationValue = document.getElementById("durationValue");
+    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progressBar");
 
-<script>
-const fileInput = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const startBtn = document.getElementById("startBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const durationInput = document.getElementById("duration");
-const durationValue = document.getElementById("durationValue");
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+    let imageFile = null;
 
-let imageFile = null;
+    // preview gambar
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      imageFile = file;
+      preview.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      preview.appendChild(img);
 
-// preview gambar
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  imageFile = file;
-  preview.innerHTML = "";
-  const img = document.createElement("img");
-  img.src = URL.createObjectURL(file);
-  preview.appendChild(img);
+      // reset tombol
+      startBtn.style.display = "block";
+      downloadBtn.style.display = "none";
+    });
 
-  // Reset tombol saat pilih gambar baru
-  startBtn.style.display = "block";
-  downloadBtn.style.display = "none";
-});
+    // update slider durasi
+    durationInput.addEventListener("input", () => {
+      durationValue.textContent = durationInput.value;
+    });
 
-// update nilai slider
-durationInput.addEventListener("input", () => {
-  durationValue.textContent = durationInput.value;
-});
+    startBtn.addEventListener("click", async () => {
+      if (!imageFile) {
+        alert("Pilih gambar dulu!");
+        return;
+      }
 
-startBtn.addEventListener("click", async () => {
-  if (!imageFile) {
-    alert("Pilih gambar dulu!");
-    return;
-  }
+      const duration = parseInt(durationInput.value, 10) || 5;
 
-  const duration = parseInt(durationInput.value, 10) || 5;
+      startBtn.disabled = true;
+      startBtn.textContent = "Memproses...";
+      progress.style.display = "block";
+      progressBar.style.width = "0%";
+      downloadBtn.style.display = "none";
 
-  startBtn.disabled = true;
-  startBtn.textContent = "Memproses...";
-  progress.style.display = "block";
-  progressBar.style.width = "0%";
-  downloadBtn.style.display = "none";
+      // buat canvas square
+      const canvas = document.createElement("canvas");
+      canvas.width = 1920;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d");
 
-  // buat canvas square
-  const canvas = document.createElement("canvas");
-  canvas.width = 1920;
-  canvas.height = 1920;  // square 1:1
-  const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.src = URL.createObjectURL(imageFile);
 
-  const img = new Image();
-  img.src = URL.createObjectURL(imageFile);
+      img.onload = () => {
+        const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width - img.width * scale) / 2;
+        const y = (canvas.height - img.height * scale) / 2;
 
-  img.onload = () => {
-    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-    const x = (canvas.width - img.width * scale) / 2;
-    const y = (canvas.height - img.height * scale) / 2;
+        function drawFrame() {
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        }
 
-    function drawFrame() {
-      ctx.fillStyle = "#000"; // background hitam
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-    }
+        const stream = canvas.captureStream(30);
+        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
 
-    const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+        let chunks = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
 
-    let chunks = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "video/webm" });
+          const url = URL.createObjectURL(blob);
+          downloadBtn.href = url;
 
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: "video/webm" });
-      const url = URL.createObjectURL(blob);
-      downloadBtn.href = url;
+          // setelah selesai → tampilkan tombol download
+          startBtn.style.display = "none";
+          downloadBtn.style.display = "block";
 
-      // tampilkan download, sembunyikan tombol buat video
-      startBtn.style.display = "none";
-      downloadBtn.style.display = "block";
+          startBtn.disabled = false;
+          startBtn.textContent = "Buat Video";
+          progress.style.display = "none";
+        };
 
-      startBtn.disabled = false;
-      startBtn.textContent = "Buat Video";
-      progress.style.display = "none";
-    };
+        let elapsed = 0;
+        const total = duration * 1000;
+        const step = 100;
 
-    let elapsed = 0;
-    const total = duration * 1000;
-    const step = 100;
+        const interval = setInterval(() => {
+          drawFrame();
+          elapsed += step;
+          progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
+        }, step);
 
-    const interval = setInterval(() => {
-      drawFrame();
-      elapsed += step;
-      progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
-    }, step);
-
-    recorder.start();
-    setTimeout(() => {
-      clearInterval(interval);
-      recorder.stop();
-    }, duration * 1000);
-  };
-});
-</script>
+        recorder.start();
+        setTimeout(() => {
+          clearInterval(interval);
+          recorder.stop();
+        }, duration * 1000);
+      };
+    });
+  </script>
 </body>
 </html>
