@@ -242,7 +242,7 @@ async function createVideo() {
   let chunks = [];
   const recorder = new MediaRecorder(stream, { 
     mimeType,
-    videoBitsPerSecond: 12000000 // 8 Mbps
+    videoBitsPerSecond: 8000000 // 8 Mbps
   });
 
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
