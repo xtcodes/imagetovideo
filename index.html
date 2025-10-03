@@ -21,10 +21,7 @@ body {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   box-sizing: border-box;
 }
-h2 {
-  text-align: center;
-  margin-bottom: 16px;
-}
+h2 { text-align: center; margin-bottom: 16px; }
 .file-btn {
   display: inline-flex;
   align-items: center;
@@ -36,17 +33,14 @@ h2 {
   font-weight: 500;
   cursor: pointer;
   width: 100%;
-  box-sizing: border-box;
   text-align: center;
   margin-bottom: 12px;
 }
-input[type="file"] {
-  display: none;
-}
+input[type="file"] { display: none; }
 .preview {
   width: 100%;
   position: relative;
-  padding-top: 56.25%; /* 16:9 preview */
+  padding-top: 56.25%;
   background: #ddd;
   border-radius: 8px;
   overflow: hidden;
@@ -55,26 +49,16 @@ input[type="file"] {
 .preview img {
   position: absolute;
   top: 0; left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   object-fit: contain;
-  display: block;
 }
-.controls {
-  margin-bottom: 12px;
-}
-.controls label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
-}
+.controls { margin-bottom: 12px; }
+.controls label { display: block; margin-bottom: 6px; font-size: 14px; }
 .controls input {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  width: 100%; padding: 8px;
+  border: 1px solid #ccc; border-radius: 6px;
 }
-button {
+button, a.download-btn {
   padding: 12px;
   width: 100%;
   border: none;
@@ -82,9 +66,20 @@ button {
   cursor: pointer;
   font-weight: 500;
   margin-top: 10px;
+  text-align: center;
+  display: block;
 }
 .start-btn { background: #16a34a; color: white; }
-.download-btn { background: #dc2626; color: white; display: none; }
+.download-btn { background: #dc2626; color: white; display: none; text-decoration: none; }
+.progress {
+  width: 100%; background: #eee;
+  height: 10px; border-radius: 5px;
+  margin-top: 10px; overflow: hidden; display: none;
+}
+.progress-bar {
+  height: 100%; width: 0%; background: #16a34a;
+  transition: width 0.3s;
+}
 </style>
 </head>
 <body>
@@ -96,7 +91,7 @@ button {
     <input type="file" id="fileInput" accept="image/*">
   </label>
 
-  <div class="preview placeholder" id="preview"></div>
+  <div class="preview" id="preview"></div>
 
   <div class="controls">
     <label for="duration">Durasi video (detik):</label>
@@ -104,6 +99,7 @@ button {
   </div>
 
   <button class="start-btn" id="startBtn">Buat Video</button>
+  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
   <a id="downloadBtn" class="download-btn" download="output.webm">Download Video</a>
 </div>
 
@@ -113,6 +109,8 @@ const preview = document.getElementById("preview");
 const startBtn = document.getElementById("startBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const durationInput = document.getElementById("duration");
+const progress = document.getElementById("progress");
+const progressBar = document.getElementById("progressBar");
 
 let imageFile = null;
 
@@ -120,7 +118,6 @@ fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
   imageFile = file;
-
   preview.innerHTML = "";
   const img = document.createElement("img");
   img.src = URL.createObjectURL(file);
@@ -133,7 +130,13 @@ startBtn.addEventListener("click", async () => {
     return;
   }
 
-  const duration = parseInt(durationInput.value, 10) || 5; // fallback 5 detik
+  const duration = parseInt(durationInput.value, 10) || 5;
+
+  startBtn.disabled = true;
+  startBtn.textContent = "Memproses...";
+  progress.style.display = "block";
+  progressBar.style.width = "0%";
+  downloadBtn.style.display = "none";
 
   const canvas = document.createElement("canvas");
   canvas.width = 1920;
@@ -143,7 +146,7 @@ startBtn.addEventListener("click", async () => {
   const img = new Image();
   img.src = URL.createObjectURL(imageFile);
 
-  img.onload = async () => {
+  img.onload = () => {
     const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
     const x = (canvas.width - img.width * scale) / 2;
     const y = (canvas.height - img.height * scale) / 2;
@@ -166,13 +169,24 @@ startBtn.addEventListener("click", async () => {
       const blob = new Blob(chunks, { type: "video/webm" });
       const url = URL.createObjectURL(blob);
       downloadBtn.href = url;
-      downloadBtn.style.display = "inline-block";
+      downloadBtn.style.display = "block";
+
+      startBtn.disabled = false;
+      startBtn.textContent = "Buat Video";
+      progress.style.display = "none";
     };
 
-    const interval = setInterval(drawFrame, 1000 / 30);
+    let elapsed = 0;
+    const total = duration * 1000;
+    const step = 100;
+
+    const interval = setInterval(() => {
+      drawFrame();
+      elapsed += step;
+      progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
+    }, step);
 
     recorder.start();
-
     setTimeout(() => {
       clearInterval(interval);
       recorder.stop();
