@@ -54,9 +54,8 @@ input[type="file"] { display: none; }
 }
 .controls { margin-bottom: 12px; }
 .controls label { display: block; margin-bottom: 6px; font-size: 14px; }
-.controls input {
-  width: 100%; padding: 8px;
-  border: 1px solid #ccc; border-radius: 6px;
+.controls input[type="range"] {
+  width: 100%;
 }
 button, a.download-btn {
   padding: 12px;
@@ -68,9 +67,18 @@ button, a.download-btn {
   margin-top: 10px;
   text-align: center;
   display: block;
+  box-sizing: border-box;
 }
 .start-btn { background: #16a34a; color: white; }
-.download-btn { background: #dc2626; color: white; display: none; text-decoration: none; }
+.download-btn {
+  background: #dc2626;
+  color: white;
+  display: none;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .progress {
   width: 100%; background: #eee;
   height: 10px; border-radius: 5px;
@@ -94,8 +102,8 @@ button, a.download-btn {
   <div class="preview" id="preview"></div>
 
   <div class="controls">
-    <label for="duration">Durasi video (detik):</label>
-    <input type="number" id="duration" value="5" min="1" max="60">
+    <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
+    <input type="range" id="duration" value="5" min="1" max="60">
   </div>
 
   <button class="start-btn" id="startBtn">Buat Video</button>
@@ -109,11 +117,13 @@ const preview = document.getElementById("preview");
 const startBtn = document.getElementById("startBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const durationInput = document.getElementById("duration");
+const durationValue = document.getElementById("durationValue");
 const progress = document.getElementById("progress");
 const progressBar = document.getElementById("progressBar");
 
 let imageFile = null;
 
+// preview gambar
 fileInput.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -122,6 +132,11 @@ fileInput.addEventListener("change", (e) => {
   const img = document.createElement("img");
   img.src = URL.createObjectURL(file);
   preview.appendChild(img);
+});
+
+// update nilai slider
+durationInput.addEventListener("input", () => {
+  durationValue.textContent = durationInput.value;
 });
 
 startBtn.addEventListener("click", async () => {
