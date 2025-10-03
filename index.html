@@ -1,224 +1,296 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Image → Video Converter (WebM Square 1:1)</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f4f8fd;
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
-    .app {
-      width: 100%;
-      max-width: 600px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      box-sizing: border-box;
-    }
-    h2 { text-align: center; margin-bottom: 16px; }
-    .file-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px 16px;
-      border-radius: 8px;
-      background: #2563eb;
-      color: #fff;
-      font-weight: 500;
-      cursor: pointer;
-      width: 100%;
-      text-align: center;
-      margin-bottom: 12px;
-      box-sizing: border-box;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    input[type="file"] { display: none; }
-    .preview {
-      width: 100%;
-      position: relative;
-      padding-top: 100%;
-      background: #000;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 12px;
-    }
-    .preview img {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: contain;
-      background: #000;
-    }
-    .controls { margin-bottom: 12px; }
-    .controls label { display: block; margin-bottom: 6px; font-size: 14px; }
-    .controls input[type="range"] { width: 100%; }
-    button, a.download-btn {
-      padding: 12px;
-      width: 100%;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      margin-top: 10px;
-      text-align: center;
-      display: block;
-      box-sizing: border-box;
-    }
-    .start-btn { background: #16a34a; color: white; }
-    .download-btn {
-      background: #dc2626;
-      color: white;
-      display: none; /* ⬅ disembunyikan dari awal */
-      text-decoration: none;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .progress {
-      width: 100%; background: #eee;
-      height: 10px; border-radius: 5px;
-      margin-top: 10px; overflow: hidden; display: none;
-    }
-    .progress-bar {
-      height: 100%; width: 0%; background: #16a34a;
-      transition: width 0.3s;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Image → Video Converter (WebM)</title>
+<style>
+body {
+  font-family: sans-serif;
+  background: #f4f8fd;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+.app {
+  width: 100%;
+  max-width: 600px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-sizing: border-box;
+}
+h2 {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* Tombol upload */
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+/* Preview */
+.preview {
+  width: 100%;
+  position: relative;
+  padding-top: 100%; /* kotak persegi responsive */
+  background: #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.preview img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.preview.placeholder::after {
+  content: "No Image";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #999;
+  font-size: 16px;
+  background: #ddd;
+}
+
+/* Range slider */
+.range-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* Progress bar */
+.progress-container {
+  display: none; /* default disembunyikan */
+  margin-top: 12px;
+}
+.progress {
+  height: 20px; /* lebih tinggi */
+  background: #eee;
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+.fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg,#2563eb,#3b82f6);
+  position: relative;
+}
+.progress-text {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  padding-left: 8px;
+  white-space: nowrap;
+}
+
+/* Tombol Buat Video & Unduh */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  margin-top: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+}
+</style>
 </head>
 <body>
 <div class="app">
-  <h2>Image → Video Converter (WebM 1:1 Square)</h2>
+<h2>Image → Video Converter (WebM)</h2>
 
-  <label class="file-btn">
-    Pilih Gambar
-    <input type="file" id="fileInput" accept="image/*">
-  </label>
+<!-- Tombol upload -->
+<div class="file-btn" id="uploadBtn">Pilih Gambar</div>
+<input type="file" id="fileInput" accept="image/*" style="display:none;">
 
-  <div class="preview" id="preview"></div>
+<div class="preview placeholder"><img id="preview" alt="preview" /></div>
 
-  <div class="controls">
-    <label for="duration">Durasi video: <span id="durationValue">5</span> detik</label>
-    <input type="range" id="duration" value="5" min="1" max="60">
+<div class="range-container">
+  <label>Durasi (detik, max 60)</label>
+  <input type="range" id="durationRange" min="1" max="60" value="10">
+  <span id="durVal">10 detik</span>
+</div>
+
+<button class="btn" id="startBtn">Buat Video</button>
+
+<div class="progress-container">
+  <div class="progress">
+    <div class="fill" id="fill"></div>
+    <div class="progress-text" id="progressText">0%</div>
   </div>
+</div>
 
-  <button class="start-btn" id="startBtn">Buat Video</button>
-  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-<a id="downloadBtn" class="download-btn" download="output.webm" style="display:none">Download Video</a>
+<a id="download" class="btn" download style="display:none;">Unduh Video</a>
+
+<canvas id="canvas" style="display:none"></canvas>
 </div>
 
 <script>
-const fileInput = document.getElementById("fileInput");
-const preview = document.getElementById("preview");
-const startBtn = document.getElementById("startBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const durationInput = document.getElementById("duration");
-const durationValue = document.getElementById("durationValue");
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const previewContainer = document.querySelector('.preview');
+const durationRange = document.getElementById('durationRange');
+const durVal = document.getElementById('durVal');
+const startBtn = document.getElementById('startBtn');
+const fill = document.getElementById('fill');
+const progressText = document.getElementById('progressText');
+const progressContainer = document.querySelector('.progress-container');
+const download = document.getElementById('download');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-let imageFile = null;
+let img = new Image();
 
-// preview gambar
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  imageFile = file;
-  preview.innerHTML = "";
-  const img = document.createElement("img");
-  img.src = URL.createObjectURL(file);
-  preview.appendChild(img);
+// Tombol upload trigger input
+uploadBtn.addEventListener('click', () => fileInput.click());
 
-  // Reset tombol saat pilih gambar baru
-  startBtn.style.display = "block";
-  downloadBtn.style.display = "none";
-});
-
-// update nilai slider
-durationInput.addEventListener("input", () => {
-  durationValue.textContent = durationInput.value;
-});
-
-startBtn.addEventListener("click", async () => {
-  if (!imageFile) {
-    alert("Pilih gambar dulu!");
-    return;
-  }
-
-  const duration = parseInt(durationInput.value, 10) || 5;
-
-  startBtn.disabled = true;
-  startBtn.textContent = "Memproses...";
-  progress.style.display = "block";
-  progressBar.style.width = "0%";
-  downloadBtn.style.display = "none";
-
-  // buat canvas square
-  const canvas = document.createElement("canvas");
-  canvas.width = 1920;
-  canvas.height = 1920;
-  const ctx = canvas.getContext("2d");
-
-  const img = new Image();
-  img.src = URL.createObjectURL(imageFile);
-
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  uploadBtn.textContent = f.name; // ganti teks tombol
+  const url = URL.createObjectURL(f);
   img.onload = () => {
-    const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-    const x = (canvas.width - img.width * scale) / 2;
-    const y = (canvas.height - img.height * scale) / 2;
-
-    function drawFrame() {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-    }
-
-    const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
-
-    let chunks = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: "video/webm" });
-      const url = URL.createObjectURL(blob);
-      downloadBtn.href = url;
-
-      // tampilkan download, sembunyikan tombol buat video
-      startBtn.style.display = "none";
-      downloadBtn.style.display = "block";
-
-      startBtn.disabled = false;
-      startBtn.textContent = "Buat Video";
-      progress.style.display = "none";
-    };
-
-    let elapsed = 0;
-    const total = duration * 1000;
-    const step = 100;
-
-    const interval = setInterval(() => {
-      drawFrame();
-      elapsed += step;
-      progressBar.style.width = Math.min((elapsed / total) * 100, 100) + "%";
-    }, step);
-
-    recorder.start();
-    setTimeout(() => {
-      clearInterval(interval);
-      recorder.stop();
-    }, duration * 1000);
+    preview.src = url;
+    previewContainer.classList.remove('placeholder');
   };
+  img.onerror = () => {
+    preview.src = "";
+    previewContainer.classList.add('placeholder');
+  };
+  img.src = url;
+
+  // Reset UI saat ganti gambar
+  startBtn.style.display = "inline-flex";
+  download.style.display = "none";
+  progressContainer.style.display = "none";
+  fill.style.width = "0%";
+  progressText.textContent = "0%";
 });
+
+// Update durasi
+durationRange.addEventListener('input', () => {
+  durVal.textContent = durationRange.value + " detik";
+});
+
+// Fungsi draw image di canvas
+function drawImageSquareWithBlur() {
+  const cw = canvas.width;
+  const ch = canvas.height;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, cw, ch);
+
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+  if (!iw || !ih) return;
+
+  const scale = Math.min(cw / iw, ch / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  const dx = (cw - dw)/2;
+  const dy = (ch - dh)/2;
+
+  // Blur sisa ruang
+  ctx.save();
+  ctx.filter = 'blur(20px)';
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+
+  // Gambar image utama di center
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+// Fungsi buat video
+async function createVideo() {
+  if (!img.src) { alert("Pilih gambar dulu"); return; }
+
+  const durationSec = Math.min(60, Math.max(1, Number(durationRange.value)));
+  const squareSize = 1080;
+  canvas.width = squareSize;
+  canvas.height = squareSize;
+
+  // UI: tampilkan progress, sembunyikan tombol start
+  startBtn.style.display = "none";
+  progressContainer.style.display = "block";
+  fill.style.width = "0%";
+  progressText.textContent = "0%";
+  download.style.display = "none";
+
+  const stream = canvas.captureStream(30);
+  const mimeType = "video/webm;codecs=vp8";
+  let chunks = [];
+  const recorder = new MediaRecorder(stream, { mimeType });
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.start();
+
+  const start = performance.now();
+  function loop(now) {
+    drawImageSquareWithBlur();
+    const pct = Math.min(1, (now - start) / (durationSec * 1000));
+    fill.style.width = (pct*100) + "%";
+    progressText.textContent = Math.floor(pct*100) + "%";
+
+    // Pindahkan progressText mengikuti ujung fill
+    progressText.style.left = `calc(${pct*100}% + 4px)`;
+
+    if (pct < 1) requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  await new Promise(r => setTimeout(r, durationSec*1000));
+  recorder.stop();
+  await new Promise(r => recorder.onstop = r);
+
+  const blob = new Blob(chunks, { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  download.href = url;
+  download.download = "output.webm";
+
+  // UI: sembunyikan progress, tampilkan tombol download
+  progressContainer.style.display = "none";
+  download.style.display = "inline-flex";
+}
+
+startBtn.addEventListener('click', createVideo);
 </script>
 </body>
 </html>
