@@ -238,7 +238,7 @@ async function createVideo() {
   const stream = canvas.captureStream(30);
 
   // Codec VP9 + Bitrate tinggi = HD
-  const mimeType = "video/webm;codecs=av1";
+  const mimeType = "video/webm;codecs=vp9";
   let chunks = [];
   const recorder = new MediaRecorder(stream, { 
     mimeType,
