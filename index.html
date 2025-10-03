@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Image → Video Converter (WebM)</title>
+<title>Image → Video Converter (WebM HD)</title>
 <style>
 body {
   font-family: sans-serif;
@@ -25,8 +25,6 @@ h2 {
   text-align: center;
   margin-bottom: 16px;
 }
-
-/* Tombol upload */
 .file-btn {
   display: inline-flex;
   align-items: center;
@@ -43,12 +41,10 @@ h2 {
   margin-bottom: 12px;
   overflow: hidden;
 }
-
-/* Preview */
 .preview {
   width: 100%;
   position: relative;
-  padding-top: 100%; /* kotak persegi responsive */
+  padding-top: 100%;
   background: #ddd;
   border-radius: 8px;
   overflow: hidden;
@@ -56,8 +52,7 @@ h2 {
 }
 .preview img {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -76,8 +71,6 @@ h2 {
   font-size: 16px;
   background: #ddd;
 }
-
-/* Range slider */
 .range-container {
   display: flex;
   align-items: center;
@@ -85,14 +78,12 @@ h2 {
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-
-/* Progress bar */
 .progress-container {
-  display: none; /* default disembunyikan */
+  display: none;
   margin-top: 12px;
 }
 .progress {
-  height: 20px; /* lebih tinggi */
+  height: 20px;
   background: #eee;
   border-radius: 99px;
   overflow: hidden;
@@ -114,8 +105,6 @@ h2 {
   padding-left: 8px;
   white-space: nowrap;
 }
-
-/* Tombol Buat Video & Unduh */
 .btn {
   display: inline-flex;
   justify-content: center;
@@ -136,9 +125,8 @@ h2 {
 </head>
 <body>
 <div class="app">
-<h2>Image → Video Converter (WebM)</h2>
+<h2>Image → Video Converter (WebM HD)</h2>
 
-<!-- Tombol upload -->
 <div class="file-btn" id="uploadBtn">Pilih Gambar</div>
 <input type="file" id="fileInput" accept="image/*" style="display:none;">
 
@@ -181,13 +169,12 @@ const ctx = canvas.getContext('2d');
 
 let img = new Image();
 
-// Tombol upload trigger input
 uploadBtn.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (!f) return;
-  uploadBtn.textContent = f.name; // ganti teks tombol
+  uploadBtn.textContent = f.name;
   const url = URL.createObjectURL(f);
   img.onload = () => {
     preview.src = url;
@@ -199,7 +186,6 @@ fileInput.addEventListener('change', e => {
   };
   img.src = url;
 
-  // Reset UI saat ganti gambar
   startBtn.style.display = "inline-flex";
   download.style.display = "none";
   progressContainer.style.display = "none";
@@ -207,12 +193,10 @@ fileInput.addEventListener('change', e => {
   progressText.textContent = "0%";
 });
 
-// Update durasi
 durationRange.addEventListener('input', () => {
   durVal.textContent = durationRange.value + " detik";
 });
 
-// Fungsi draw image di canvas
 function drawImageSquareWithBlur() {
   const cw = canvas.width;
   const ch = canvas.height;
@@ -229,17 +213,14 @@ function drawImageSquareWithBlur() {
   const dx = (cw - dw)/2;
   const dy = (ch - dh)/2;
 
-  // Blur sisa ruang
   ctx.save();
   ctx.filter = 'blur(20px)';
   ctx.drawImage(img, dx, dy, dw, dh);
   ctx.restore();
 
-  // Gambar image utama di center
   ctx.drawImage(img, dx, dy, dw, dh);
 }
 
-// Fungsi buat video
 async function createVideo() {
   if (!img.src) { alert("Pilih gambar dulu"); return; }
 
@@ -248,7 +229,6 @@ async function createVideo() {
   canvas.width = squareSize;
   canvas.height = squareSize;
 
-  // UI: tampilkan progress, sembunyikan tombol start
   startBtn.style.display = "none";
   progressContainer.style.display = "block";
   fill.style.width = "0%";
@@ -256,9 +236,15 @@ async function createVideo() {
   download.style.display = "none";
 
   const stream = canvas.captureStream(30);
-  const mimeType = "video/webm;codecs=vp8";
+
+  // Codec VP9 + Bitrate tinggi = HD
+  const mimeType = "video/webm;codecs=vp9";
   let chunks = [];
-  const recorder = new MediaRecorder(stream, { mimeType });
+  const recorder = new MediaRecorder(stream, { 
+    mimeType,
+    videoBitsPerSecond: 8000000 // 8 Mbps
+  });
+
   recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
   recorder.start();
 
@@ -268,10 +254,7 @@ async function createVideo() {
     const pct = Math.min(1, (now - start) / (durationSec * 1000));
     fill.style.width = (pct*100) + "%";
     progressText.textContent = Math.floor(pct*100) + "%";
-
-    // Pindahkan progressText mengikuti ujung fill
     progressText.style.left = `calc(${pct*100}% + 4px)`;
-
     if (pct < 1) requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
@@ -283,9 +266,8 @@ async function createVideo() {
   const blob = new Blob(chunks, { type: mimeType });
   const url = URL.createObjectURL(blob);
   download.href = url;
-  download.download = "output.webm";
+  download.download = "output-hd.webm";
 
-  // UI: sembunyikan progress, tampilkan tombol download
   progressContainer.style.display = "none";
   download.style.display = "inline-flex";
 }
