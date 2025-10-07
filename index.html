@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image → Video Converter</title>
+  <title>Image → Video Converter (Blur Background)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -33,7 +33,6 @@
       color: #6b7280;
       margin-bottom: 20px;
     }
-    /* Upload */
     .upload {
       border: 2px dashed #cbd5e1;
       border-radius: 10px;
@@ -51,7 +50,6 @@
     .upload p { font-size: 14px; color: #475569; }
     input[type=file] { display: none; }
 
-    /* Preview area */
     .preview { display: none; text-align: center; }
     .preview-box {
       position: relative;
@@ -70,7 +68,6 @@
     }
     video.hidden, canvas.hidden { display: none; }
 
-    /* Controls */
     .controls {
       display: none;
       margin-top: 16px;
@@ -99,7 +96,6 @@
     }
     .btn-generate:hover { background: #2563eb; }
 
-    /* Progress */
     .progress {
       display: none;
       margin-top: 20px;
@@ -124,7 +120,6 @@
       transition: width 0.1s linear;
     }
 
-    /* Bottom buttons */
     .bottom {
       display: flex;
       gap: 10px;
@@ -152,9 +147,8 @@
 <body>
 <div class="container">
   <h1>Image → Video Converter</h1>
-  <p class="sub">Ubah gambar menjadi video square (1:1)</p>
+  <p class="sub">Ubah gambar menjadi video square (1:1) dengan background blur</p>
 
-  <!-- Upload -->
   <div id="uploadArea" class="upload">
     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.6">
       <path d="M12 5v14M5 12h14"/>
@@ -164,7 +158,6 @@
     <input id="fileInput" type="file" accept="image/*">
   </div>
 
-  <!-- Preview -->
   <div id="preview" class="preview">
     <div class="preview-box">
       <canvas id="canvas"></canvas>
@@ -172,8 +165,12 @@
     </div>
 
     <div id="controls" class="controls">
-      <label>Durasi: <span id="durVal">3s</span></label>
+      <label>Durasi Video: <span id="durVal">3s</span></label>
       <input id="duration" type="range" min="1" max="60" value="3">
+
+      <label>Intensitas Blur: <span id="blurVal">20px</span></label>
+      <input id="blurRange" type="range" min="0" max="40" value="20">
+
       <button id="generate" class="btn-generate">Generate Video</button>
     </div>
 
@@ -202,6 +199,8 @@ const video = document.getElementById('video');
 const controls = document.getElementById('controls');
 const durInput = document.getElementById('duration');
 const durVal = document.getElementById('durVal');
+const blurInput = document.getElementById('blurRange');
+const blurVal = document.getElementById('blurVal');
 const generate = document.getElementById('generate');
 const progress = document.getElementById('progress');
 const progBar = document.getElementById('progBar');
@@ -210,8 +209,14 @@ const download = document.getElementById('download');
 const reset = document.getElementById('reset');
 
 let img = null;
+let currentBlur = 20;
 
 durInput.oninput = () => durVal.textContent = durInput.value + "s";
+blurInput.oninput = () => {
+  blurVal.textContent = blurInput.value + "px";
+  currentBlur = parseInt(blurInput.value);
+  if (img) drawPreview();
+};
 
 upload.onclick = () => fileInput.click();
 fileInput.onchange = e => {
@@ -221,11 +226,7 @@ fileInput.onchange = e => {
   r.onload = () => {
     img = new Image();
     img.onload = () => {
-      const size = Math.min(img.width, img.height);
-      const sx = (img.width - size) / 2;
-      const sy = (img.height - size) / 2;
-      canvas.width = canvas.height = 512;
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, 512, 512);
+      drawPreview();
       upload.style.display = "none";
       preview.style.display = "block";
       controls.style.display = "block";
@@ -237,6 +238,48 @@ fileInput.onchange = e => {
   r.readAsDataURL(f);
 };
 
+// fungsi menggambar ulang preview (dengan blur)
+function drawPreview() {
+  const canvasSize = 512;
+  canvas.width = canvas.height = canvasSize;
+  const imgRatio = img.width / img.height;
+  const canvasRatio = 1;
+
+  // Background blur (cover)
+  const blurCanvas = document.createElement("canvas");
+  const blurCtx = blurCanvas.getContext("2d");
+  blurCanvas.width = blurCanvas.height = canvasSize;
+  let bgWidth, bgHeight;
+  if (imgRatio > canvasRatio) {
+    bgHeight = canvasSize;
+    bgWidth = canvasSize * imgRatio;
+  } else {
+    bgWidth = canvasSize;
+    bgHeight = canvasSize / imgRatio;
+  }
+  const bgX = (canvasSize - bgWidth) / 2;
+  const bgY = (canvasSize - bgHeight) / 2;
+  blurCtx.drawImage(img, bgX, bgY, bgWidth, bgHeight);
+
+  ctx.filter = `blur(${currentBlur}px) brightness(0.8)`;
+  ctx.drawImage(blurCanvas, 0, 0, canvasSize, canvasSize);
+  ctx.filter = "none";
+
+  // Gambar utama (fit di tengah)
+  let fgWidth, fgHeight;
+  if (imgRatio > canvasRatio) {
+    fgWidth = canvasSize;
+    fgHeight = canvasSize / imgRatio;
+  } else {
+    fgHeight = canvasSize;
+    fgWidth = canvasSize * imgRatio;
+  }
+  const dx = (canvasSize - fgWidth) / 2;
+  const dy = (canvasSize - fgHeight) / 2;
+  ctx.drawImage(img, dx, dy, fgWidth, fgHeight);
+}
+
+// generate video
 generate.onclick = () => {
   if (!img) return alert("Unggah gambar dulu!");
   controls.style.display = "none";
@@ -258,7 +301,7 @@ generate.onclick = () => {
     const per = Math.floor(p * 100);
     progBar.style.width = per + "%";
     progText.textContent = per + "%";
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    drawPreview();
     if (p < 1) requestAnimationFrame(frame);
     else rec.stop();
   }
