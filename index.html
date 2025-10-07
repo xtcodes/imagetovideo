@@ -87,14 +87,34 @@
       font-weight: 600;
       transition: 0.2s;
     }
+
+    /* Tombol utama dan kecil */
     .btn-generate {
-      width: 100%;
+      flex: 1;
       background: #3b82f6;
       color: #fff;
       padding: 12px;
-      margin-top: 12px;
     }
     .btn-generate:hover { background: #2563eb; }
+
+    .btn-change {
+      width: 48px;
+      height: 48px;
+      background: #e2e8f0;
+      font-size: 20px;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-change:hover { background: #cbd5e1; }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
 
     .progress {
       display: none;
@@ -171,7 +191,11 @@
       <label>Intensitas Blur: <span id="blurVal">20px</span></label>
       <input id="blurRange" type="range" min="0" max="40" value="20">
 
-      <button id="generate" class="btn-generate">Generate Video</button>
+      <!-- Grup tombol baru -->
+      <div class="btn-group">
+        <button id="changeImage" class="btn-change" title="Ganti Gambar">📁</button>
+        <button id="generate" class="btn-generate">Generate Video</button>
+      </div>
     </div>
 
     <div id="progress" class="progress">
@@ -202,6 +226,7 @@ const durVal = document.getElementById('durVal');
 const blurInput = document.getElementById('blurRange');
 const blurVal = document.getElementById('blurVal');
 const generate = document.getElementById('generate');
+const changeImage = document.getElementById('changeImage');
 const progress = document.getElementById('progress');
 const progBar = document.getElementById('progBar');
 const progText = document.getElementById('progText');
@@ -219,8 +244,10 @@ blurInput.oninput = () => {
 };
 
 upload.onclick = () => fileInput.click();
-fileInput.onchange = e => {
-  const f = e.target.files[0];
+fileInput.onchange = e => loadImage(e.target.files[0]);
+changeImage.onclick = () => fileInput.click();
+
+function loadImage(f) {
   if (!f) return;
   const r = new FileReader();
   r.onload = () => {
@@ -236,16 +263,14 @@ fileInput.onchange = e => {
     img.src = r.result;
   };
   r.readAsDataURL(f);
-};
+}
 
-// fungsi menggambar ulang preview (dengan blur)
 function drawPreview() {
   const canvasSize = 512;
   canvas.width = canvas.height = canvasSize;
   const imgRatio = img.width / img.height;
   const canvasRatio = 1;
 
-  // Background blur (cover)
   const blurCanvas = document.createElement("canvas");
   const blurCtx = blurCanvas.getContext("2d");
   blurCanvas.width = blurCanvas.height = canvasSize;
@@ -265,7 +290,6 @@ function drawPreview() {
   ctx.drawImage(blurCanvas, 0, 0, canvasSize, canvasSize);
   ctx.filter = "none";
 
-  // Gambar utama (fit di tengah)
   let fgWidth, fgHeight;
   if (imgRatio > canvasRatio) {
     fgWidth = canvasSize;
@@ -279,7 +303,6 @@ function drawPreview() {
   ctx.drawImage(img, dx, dy, fgWidth, fgHeight);
 }
 
-// generate video
 generate.onclick = () => {
   if (!img) return alert("Unggah gambar dulu!");
   controls.style.display = "none";
@@ -327,18 +350,15 @@ generate.onclick = () => {
 };
 
 reset.onclick = () => {
-  // Reset nilai slider dan teks
   durInput.value = 3;
   blurInput.value = 20;
   durVal.textContent = "3s";
   blurVal.textContent = "20px";
   currentBlur = 20;
-
-  // Hapus gambar lama & bersihkan canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   img = null;
+  video.src = "";
 
-  // Reset tampilan UI
   preview.style.display = "none";
   upload.style.display = "flex";
   download.style.display = "none";
@@ -347,10 +367,8 @@ reset.onclick = () => {
   controls.style.display = "none";
   video.classList.add("hidden");
   canvas.classList.remove("hidden");
-  video.src = "";
   fileInput.value = "";
 };
-
 </script>
 </body>
 </html>
