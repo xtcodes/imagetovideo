@@ -327,15 +327,30 @@ generate.onclick = () => {
 };
 
 reset.onclick = () => {
+  // Reset nilai slider dan teks
+  durInput.value = 3;
+  blurInput.value = 20;
+  durVal.textContent = "3s";
+  blurVal.textContent = "20px";
+  currentBlur = 20;
+
+  // Hapus gambar lama & bersihkan canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  img = null;
+
+  // Reset tampilan UI
   preview.style.display = "none";
   upload.style.display = "flex";
   download.style.display = "none";
   reset.style.display = "none";
   progress.style.display = "none";
   controls.style.display = "none";
+  video.classList.add("hidden");
+  canvas.classList.remove("hidden");
+  video.src = "";
   fileInput.value = "";
-  img = null;
 };
+
 </script>
 </body>
 </html>
