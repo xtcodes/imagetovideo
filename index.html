@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image → Video Converter (Full HD)</title>
+  <title>Image → Video Converter</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,6 +35,7 @@
       margin-bottom: 20px;
     }
 
+    /* Upload */
     .upload {
       border: 2px dashed #cbd5e1;
       border-radius: 10px;
@@ -52,6 +53,7 @@
     .upload p { font-size: 14px; color: #475569; }
     input[type=file] { display: none; }
 
+    /* Preview area */
     .preview { display: none; text-align: center; }
     .preview-box {
       position: relative;
@@ -64,13 +66,13 @@
     canvas, video {
       position: absolute;
       top: 0; left: 0;
-      width: 100%;
-      height: auto;
-      object-fit: contain;
+      width: 100%; height: 100%;
+      object-fit: cover;
       border-radius: 10px;
     }
     video.hidden, canvas.hidden { display: none; }
 
+    /* Controls */
     .controls {
       display: none;
       margin-top: 16px;
@@ -84,43 +86,65 @@
     }
     input[type=range] { width: 100%; accent-color: #2563eb; }
 
-    .btn-group {
-      display: flex;
-      align-items: stretch;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .btn-change {
-      background: #e2e8f0;
-      color: #334155;
-      font-size: 16px;
-      padding: 0 18px;
-      height: 44px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
+    /*.btn-group {
       display: flex;
       align-items: center;
-      justify-content: center;
-      transition: 0.2s;
-    }
-    .btn-change:hover { background: #cbd5e1; }
-    .btn-change i { font-size: 18px; }
+      gap: 10px;
+      margin-top: 12px;
+    }*/
+    .btn-group {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 12px;
+}
 
-    .btn-generate {
+
+    .btn-change {
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 16px;
+  padding: 0 18px;
+  height: 44px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+.btn-change:hover { background: #cbd5e1; }
+.btn-change i { font-size: 18px; }
+
+
+
+   /* .btn-generate {
       flex: 1;
       background: #3b82f6;
       color: #fff;
       padding: 12px;
       border-radius: 8px;
       font-weight: 600;
-      border: none;
-      outline: none;
       transition: 0.2s;
     }
-    .btn-generate:hover { background: #2563eb; }
+    .btn-generate:hover { background: #2563eb; }*/
 
+    .btn-generate {
+  flex: 1;
+  background: #3b82f6;
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  outline: none;
+  transition: 0.2s;
+}
+.btn-generate:hover { background: #2563eb; }
+
+
+    /* Progress */
     .progress {
       display: none;
       margin-top: 20px;
@@ -145,6 +169,7 @@
       transition: width 0.1s linear;
     }
 
+    /* Bottom buttons */
     .bottom {
       display: flex;
       gap: 10px;
@@ -174,7 +199,7 @@
     }
     .btn-reset i { font-size: 18px; }
     .btn-reset:hover { background: #cbd5e1; }
-
+    
     .btn-change,
     .btn-generate,
     .btn-download,
@@ -182,13 +207,15 @@
       border: none;
       outline: none;
     }
+
   </style>
 </head>
 <body>
 <div class="container">
   <h1>Image → Video Converter</h1>
-  <p class="sub">Ubah gambar menjadi video square (Full HD 1080p)</p>
+  <p class="sub">Ubah gambar menjadi video square (1:1)</p>
 
+  <!-- Upload -->
   <div id="uploadArea" class="upload">
     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.6">
       <path d="M12 5v14M5 12h14"/>
@@ -198,6 +225,7 @@
     <input id="fileInput" type="file" accept="image/*">
   </div>
 
+  <!-- Preview -->
   <div id="preview" class="preview">
     <div class="preview-box">
       <canvas id="canvas"></canvas>
@@ -285,25 +313,23 @@ fileInput.onchange = e => {
 };
 
 function drawPreview() {
-  const ratio = window.devicePixelRatio || 1;
-  const canvasSize = 1080 * ratio; // Full HD square, mendukung layar retina
+  const canvasSize = 1024;
   canvas.width = canvas.height = canvasSize;
-  ctx.scale(ratio, ratio);
 
   const imgRatio = img.width / img.height;
   const canvasRatio = 1;
   let bgWidth, bgHeight;
 
   if (imgRatio > canvasRatio) {
-    bgHeight = 1080;
-    bgWidth = 1080 * imgRatio;
+    bgHeight = canvasSize;
+    bgWidth = canvasSize * imgRatio;
   } else {
-    bgWidth = 1080;
-    bgHeight = 1080 / imgRatio;
+    bgWidth = canvasSize;
+    bgHeight = canvasSize / imgRatio;
   }
 
-  const bgX = (1080 - bgWidth) / 2;
-  const bgY = (1080 - bgHeight) / 2;
+  const bgX = (canvasSize - bgWidth) / 2;
+  const bgY = (canvasSize - bgHeight) / 2;
 
   ctx.filter = `blur(${currentBlur}px) brightness(0.8)`;
   ctx.drawImage(img, bgX, bgY, bgWidth, bgHeight);
@@ -311,14 +337,14 @@ function drawPreview() {
 
   let fgWidth, fgHeight;
   if (imgRatio > canvasRatio) {
-    fgWidth = 1080;
-    fgHeight = 1080 / imgRatio;
+    fgWidth = canvasSize;
+    fgHeight = canvasSize / imgRatio;
   } else {
-    fgHeight = 1080;
-    fgWidth = 1080 * imgRatio;
+    fgHeight = canvasSize;
+    fgWidth = canvasSize * imgRatio;
   }
-  const dx = (1080 - fgWidth) / 2;
-  const dy = (1080 - fgHeight) / 2;
+  const dx = (canvasSize - fgWidth) / 2;
+  const dy = (canvasSize - fgHeight) / 2;
   ctx.drawImage(img, dx, dy, fgWidth, fgHeight);
 }
 
@@ -331,10 +357,7 @@ generate.onclick = () => {
 
   const stream = canvas.captureStream(30);
   const chunks = [];
-  const rec = new MediaRecorder(stream, {
-    mimeType: "video/webm;codecs=vp9",
-    videoBitsPerSecond: 8000000 // 8 Mbps → tajam dan halus
-  });
+  const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
   rec.ondataavailable = e => chunks.push(e.data);
   rec.start();
 
@@ -365,7 +388,7 @@ generate.onclick = () => {
     download.onclick = () => {
       const a = document.createElement("a");
       a.href = url;
-      a.download = "image-video-hd.webm";
+      a.download = "image-video.webm";
       a.click();
     };
   };
