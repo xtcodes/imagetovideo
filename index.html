@@ -3,14 +3,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Image to Video Converter</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .gradient-bg {
       background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
     }
-    .loading-animation { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
     .preview-container {
       position: relative;
       overflow: hidden;
@@ -23,13 +20,15 @@
   <div class="max-w-4xl mx-auto">
     <header class="text-center mb-12">
       <h1 class="text-4xl font-bold text-gray-800 mb-4">Image to Video Converter</h1>
-      <p class="text-lg text-gray-600">Transform static images into dynamic videos with AI effects</p>
+      <p class="text-lg text-gray-600">Transform static images into smooth motion videos</p>
     </header>
 
     <div class="bg-white rounded-2xl p-8 shadow-xl">
+      <!-- Upload -->
       <div class="mb-8">
         <div class="flex items-center justify-center w-full">
-          <label class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+          <label
+            class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
             <div class="flex flex-col items-center justify-center pt-5 pb-6">
               <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -43,22 +42,14 @@
         </div>
       </div>
 
+      <!-- Controls -->
       <div class="space-y-4">
-        <div class="flex flex-wrap gap-4">
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700">Animation Style</label>
-            <select id="animation-style"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <option value="zoom">Zoom Effect</option>
-              <option value="pan">Pan Effect</option>
-              <option value="3d">3D Rotation</option>
-            </select>
-          </div>
-          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700">Duration (seconds)</label>
-            <input type="number" id="duration" min="1" max="10" value="3"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-          </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Duration: 
+            <span id="duration-value" class="font-semibold text-blue-600">3s</span>
+          </label>
+          <input type="range" id="duration" min="1" max="60" value="3" 
+                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
         </div>
 
         <button id="generate-btn"
@@ -67,6 +58,7 @@
         </button>
       </div>
 
+      <!-- Preview -->
       <div id="preview" class="mt-8 hidden">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Preview</h3>
         <div class="preview-container">
@@ -89,8 +81,16 @@
     const preview = document.getElementById("preview");
     const previewVideo = document.getElementById("preview-video");
     const downloadBtn = document.getElementById("download-btn");
+    const durationInput = document.getElementById("duration");
+    const durationLabel = document.getElementById("duration-value");
     let originalImage = null;
 
+    // Update duration label
+    durationInput.addEventListener("input", () => {
+      durationLabel.textContent = `${durationInput.value}s`;
+    });
+
+    // Handle upload
     document.getElementById("file-upload").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -109,14 +109,14 @@
       reader.readAsDataURL(file);
     });
 
+    // Generate video
     document.getElementById("generate-btn").addEventListener("click", async () => {
       if (!originalImage) {
         alert("Please upload an image first!");
         return;
       }
 
-      const style = document.getElementById("animation-style").value;
-      const duration = parseFloat(document.getElementById("duration").value);
+      const duration = parseFloat(durationInput.value);
       previewVideo.classList.add("hidden");
       canvas.classList.remove("hidden");
       downloadBtn.classList.add("hidden");
@@ -132,25 +132,15 @@
         if (!startTime) startTime = timestamp;
         const progress = (timestamp - startTime) / (duration * 1000);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         if (progress < 1) {
-          if (style === "zoom") {
-            const scale = 1 + progress * 0.2;
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.scale(scale, scale);
-            ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
-            ctx.restore();
-          } else if (style === "pan") {
-            const x = progress * canvas.width * 0.2 - canvas.width * 0.1;
-            ctx.drawImage(originalImage, x, 0);
-          } else if (style === "3d") {
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(progress * Math.PI / 8);
-            ctx.scale(1 - progress * 0.1, 1);
-            ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
-            ctx.restore();
-          }
+          // simple smooth zoom-in animation
+          const scale = 1 + progress * 0.2;
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.scale(scale, scale);
+          ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
+          ctx.restore();
           requestAnimationFrame(animate);
         } else {
           recorder.stop();
