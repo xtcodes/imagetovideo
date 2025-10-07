@@ -1,351 +1,179 @@
-<html><head><base href=".">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image to Video Converter</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .gradient-bg {
-            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
-        }
-        
-        .loading-animation {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: .5;
-            }
-        }
-
-        .preview-container {
-            position: relative;
-            overflow: hidden;
-            border-radius: 1rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .floating {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-20px);
-            }
-            100% {
-                transform: translateY(0px);
-            }
-        }
-    </style>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image to Video Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .gradient-bg {
+      background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+    }
+    .loading-animation { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+    .preview-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 1rem;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    }
+  </style>
 </head>
 <body class="min-h-screen gradient-bg p-8">
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-gray-800 mb-4"> Image to Video Converter</h1>
-            <p class="text-lg text-gray-600">Transform static images into dynamic videos with advanced AI</p>
-        </header>
+  <div class="max-w-4xl mx-auto">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-800 mb-4">Image to Video Converter</h1>
+      <p class="text-lg text-gray-600">Transform static images into dynamic videos with AI effects</p>
+    </header>
 
-        <div class="bg-white rounded-2xl p-8 shadow-xl">
-            <div class="mb-8">
-                <div class="flex items-center justify-center w-full">
-                    <label class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                            </svg>
-                            <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p class="text-xs text-gray-500">PNG, JPG or WEBP (MAX. 10MB)</p>
-                        </div>
-                        <input id="file-upload" type="file" class="hidden" accept="image/*">
-                    </label>
-                </div>
+    <div class="bg-white rounded-2xl p-8 shadow-xl">
+      <div class="mb-8">
+        <div class="flex items-center justify-center w-full">
+          <label class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+              <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+              <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+              <p class="text-xs text-gray-500">PNG, JPG or WEBP (MAX. 10MB)</p>
             </div>
-
-            <div class="space-y-4">
-                <div class="flex flex-wrap gap-4">
-                    <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700">Animation Style</label>
-                        <select id="animation-style" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="zoom">Zoom Effect</option>
-                            <option value="pan">Pan Effect</option>
-                            <option value="morph">Morphing</option>
-                            <option value="3d">3D Rotation</option>
-                            <option value="character">Character Animation</option>
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <label class="block text-sm font-medium text-gray-700">Duration (seconds)</label>
-                        <input type="number" id="duration" min="1" max="10" value="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-                </div>
-
-                <button id="generate-btn" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300">
-                    Generate Video
-                </button>
-            </div>
-
-            <div id="preview" class="mt-8 hidden">
-                <h3 class="text-lg font-semibold text-gray-700 mb-4">Preview</h3>
-                <div class="preview-container">
-                    <canvas id="preview-canvas" class="w-full"></canvas>
-                </div>
-                <div class="mt-4 flex justify-end">
-                    <button id="download-btn" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all duration-300">
-                        Download Video
-                    </button>
-                </div>
-            </div>
+            <input id="file-upload" type="file" class="hidden" accept="image/*">
+          </label>
         </div>
-    </div>
+      </div>
 
-    <script>let originalImage = null;
-let animationFrame = null;
-const canvas = document.getElementById('preview-canvas');
-const ctx = canvas.getContext('2d');
-let characterMask = null;
-let characterSegments = [];
-document.getElementById('file-upload').addEventListener('change', handleFileUpload);
-function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = async function (event) {
-      const img = new Image();
-      img.onload = async function () {
-        originalImage = img;
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        try {
-          const tensor = tf.browser.fromPixels(img);
-          const segmentation = await detectCharacters(tensor);
-          characterMask = segmentation;
-          characterSegments = extractCharacterSegments(segmentation);
-          tensor.dispose();
-        } catch (error) {
-          console.error('Character detection failed:', error);
-        }
-        document.getElementById('preview').classList.remove('hidden');
+      <div class="space-y-4">
+        <div class="flex flex-wrap gap-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700">Animation Style</label>
+            <select id="animation-style"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+              <option value="zoom">Zoom Effect</option>
+              <option value="pan">Pan Effect</option>
+              <option value="3d">3D Rotation</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700">Duration (seconds)</label>
+            <input type="number" id="duration" min="1" max="10" value="3"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <button id="generate-btn"
+          class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300">
+          Generate Video
+        </button>
+      </div>
+
+      <div id="preview" class="mt-8 hidden">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Preview</h3>
+        <div class="preview-container">
+          <canvas id="preview-canvas" class="w-full"></canvas>
+          <video id="preview-video" class="w-full hidden" controls></video>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button id="download-btn"
+            class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-green-600 transition-all duration-300 hidden">
+            Download Video
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("preview-canvas");
+    const ctx = canvas.getContext("2d");
+    const preview = document.getElementById("preview");
+    const previewVideo = document.getElementById("preview-video");
+    const downloadBtn = document.getElementById("download-btn");
+    let originalImage = null;
+
+    document.getElementById("file-upload").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          originalImage = img;
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          preview.classList.remove("hidden");
+        };
+        img.src = ev.target.result;
       };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-}
-document.getElementById('generate-btn').addEventListener('click', generateVideo);
-async function generateVideo() {
-  if (!originalImage) {
-    alert('Please upload an image first');
-    return;
-  }
-  const style = document.getElementById('animation-style').value;
-  const duration = parseFloat(document.getElementById('duration').value);
-  if (animationFrame) {
-    cancelAnimationFrame(animationFrame);
-  }
-  let startTime = null;
-  const animate = timestamp => {
-    if (!startTime) startTime = timestamp;
-    const progress = (timestamp - startTime) / (duration * 1000);
-    if (progress < 1) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      switch (style) {
-        case 'zoom':
-          applyZoomEffect(progress);
-          break;
-        case 'pan':
-          applyPanEffect(progress);
-          break;
-        case 'morph':
-          applyMorphEffect(progress);
-          break;
-        case '3d':
-          apply3DEffect(progress);
-          break;
-        case 'character':
-          applyCharacterAnimation(progress);
-          break;
-      }
-      animationFrame = requestAnimationFrame(animate);
-    } else {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(originalImage, 0, 0);
-    }
-  };
-  animationFrame = requestAnimationFrame(animate);
-}
-function applyZoomEffect(progress) {
-  const scale = 1 + progress * 0.2;
-  ctx.save();
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.scale(scale, scale);
-  ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
-  ctx.restore();
-}
-function applyPanEffect(progress) {
-  const x = progress * canvas.width * 0.2 - canvas.width * 0.1;
-  ctx.drawImage(originalImage, x, 0);
-}
-function applyMorphEffect(progress) {
-  ctx.save();
-  ctx.globalAlpha = 1 - progress * 0.2;
-  ctx.drawImage(originalImage, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const amplitude = 20 * progress;
-  const frequency = 20 * progress;
-  for (let y = 0; y < canvas.height; y++) {
-    const offset = Math.sin(y * frequency) * amplitude;
-    for (let x = 0; x < canvas.width; x++) {
-      const sourceX = x + Math.floor(offset);
-      if (sourceX >= 0 && sourceX < canvas.width) {
-        const sourceIndex = (y * canvas.width + sourceX) * 4;
-        const targetIndex = (y * canvas.width + x) * 4;
-        data[targetIndex] = data[sourceIndex];
-        data[targetIndex + 1] = data[sourceIndex + 1];
-        data[targetIndex + 2] = data[sourceIndex + 2];
-        data[targetIndex + 3] = data[sourceIndex + 3];
-      }
-    }
-  }
-  ctx.putImageData(imageData, 0, 0);
-  ctx.restore();
-}
-function apply3DEffect(progress) {
-  ctx.save();
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate(progress * Math.PI / 8);
-  ctx.scale(1 - progress * 0.1, 1);
-  ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
-  ctx.restore();
-}
-document.getElementById('download-btn').addEventListener('click', async () => {
-  const videoBlob = await convertCanvasToVideo();
-  const url = URL.createObjectURL(videoBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'animated-image.webm';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-async function convertCanvasToVideo() {
-  const chunks = [];
-  const stream = canvas.captureStream(30);
-  const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: 'video/webm;codecs=vp9'
-  });
-  mediaRecorder.ondataavailable = e => chunks.push(e.data);
-  mediaRecorder.start();
-  await new Promise(resolve => setTimeout(resolve, parseFloat(document.getElementById('duration').value) * 1000));
-  mediaRecorder.stop();
-  return new Promise(resolve => {
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, {
-        type: 'video/webm'
-      });
-      resolve(blob);
-    };
-  });
-}
-async function initAI() {
-  try {
-    await tf.ready();
-    console.log('TensorFlow.js initialized');
-    const model = await tf.loadGraphModel('https://tfhub.dev/tensorflow/tfjs-model/ssd_mobilenet_v2/1/default/1');
-    console.log('Character detection model loaded');
-  } catch (error) {
-    console.error('Error initializing AI:', error);
-  }
-}
-initAI();
-async function detectCharacters(tensor) {
-  const model = await tf.loadGraphModel('https://tfhub.dev/tensorflow/tfjs-model/ssd_mobilenet_v2/1/default/1');
-  const preprocessed = tf.tidy(() => {
-    return tensor.expandDims().toFloat().div(255);
-  });
-  const prediction = await model.predict(preprocessed);
-  const mask = prediction.squeeze();
-  preprocessed.dispose();
-  prediction.dispose();
-  return mask;
-}
-function extractCharacterSegments(mask) {
-  const segments = [];
-  const canvas = document.createElement('canvas');
-  canvas.width = mask.shape[0];
-  canvas.height = mask.shape[1];
-  const ctx = canvas.getContext('2d');
-  const maskData = mask.arraySync();
-  const visited = new Set();
-  for (let y = 0; y < mask.shape[0]; y++) {
-    for (let x = 0; x < mask.shape[1]; x++) {
-      if (maskData[y][x] > 0.5 && !visited.has(`${x},${y}`)) {
-        const segment = floodFill(maskData, x, y, visited);
-        segments.push(segment);
-      }
-    }
-  }
-  return segments;
-}
-function floodFill(maskData, startX, startY, visited) {
-  const segment = {
-    points: [],
-    bounds: {
-      minX: startX,
-      minY: startY,
-      maxX: startX,
-      maxY: startY
-    }
-  };
-  const queue = [[startX, startY]];
-  while (queue.length > 0) {
-    const [x, y] = queue.shift();
-    const key = `${x},${y}`;
-    if (visited.has(key)) continue;
-    visited.add(key);
-    segment.points.push([x, y]);
-    segment.bounds.minX = Math.min(segment.bounds.minX, x);
-    segment.bounds.minY = Math.min(segment.bounds.minY, y);
-    segment.bounds.maxX = Math.max(segment.bounds.maxX, x);
-    segment.bounds.maxY = Math.max(segment.bounds.maxY, y);
-    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
-    for (const [nx, ny] of neighbors) {
-      if (nx >= 0 && nx < maskData[0].length && ny >= 0 && ny < maskData.length && maskData[ny][nx] > 0.5) {
-        queue.push([nx, ny]);
-      }
-    }
-  }
-  return segment;
-}
-function applyCharacterAnimation(progress) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(originalImage, 0, 0);
-  characterSegments.forEach((segment, index) => {
-    const offsetY = Math.sin(progress * Math.PI * 2 + index) * 20;
-    const rotation = Math.sin(progress * Math.PI * 4 + index) * 0.1;
-    ctx.save();
-    const centerX = (segment.bounds.minX + segment.bounds.maxX) / 2;
-    const centerY = (segment.bounds.minY + segment.bounds.maxY) / 2;
-    ctx.translate(centerX, centerY + offsetY);
-    ctx.rotate(rotation);
-    ctx.beginPath();
-    segment.points.forEach(([x, y]) => {
-      ctx.lineTo(x - centerX, y - centerY);
+      reader.readAsDataURL(file);
     });
-    ctx.clip();
-    ctx.drawImage(originalImage, segment.bounds.minX - 5, segment.bounds.minY - 5, segment.bounds.maxX - segment.bounds.minX + 10, segment.bounds.maxY - segment.bounds.minY + 10, segment.bounds.minX - centerX - 5, segment.bounds.minY - centerY - 5, segment.bounds.maxX - segment.bounds.minX + 10, segment.bounds.maxY - segment.bounds.minY + 10);
-    ctx.restore();
-  });
-}
-initAI();</script>
-</body></html>
+
+    document.getElementById("generate-btn").addEventListener("click", async () => {
+      if (!originalImage) {
+        alert("Please upload an image first!");
+        return;
+      }
+
+      const style = document.getElementById("animation-style").value;
+      const duration = parseFloat(document.getElementById("duration").value);
+      previewVideo.classList.add("hidden");
+      canvas.classList.remove("hidden");
+      downloadBtn.classList.add("hidden");
+
+      const stream = canvas.captureStream(30);
+      const chunks = [];
+      const recorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp9" });
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.start();
+
+      let startTime = null;
+      const animate = (timestamp) => {
+        if (!startTime) startTime = timestamp;
+        const progress = (timestamp - startTime) / (duration * 1000);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (progress < 1) {
+          if (style === "zoom") {
+            const scale = 1 + progress * 0.2;
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(scale, scale);
+            ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
+            ctx.restore();
+          } else if (style === "pan") {
+            const x = progress * canvas.width * 0.2 - canvas.width * 0.1;
+            ctx.drawImage(originalImage, x, 0);
+          } else if (style === "3d") {
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(progress * Math.PI / 8);
+            ctx.scale(1 - progress * 0.1, 1);
+            ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
+            ctx.restore();
+          }
+          requestAnimationFrame(animate);
+        } else {
+          recorder.stop();
+        }
+      };
+      requestAnimationFrame(animate);
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        previewVideo.src = url;
+        previewVideo.classList.remove("hidden");
+        canvas.classList.add("hidden");
+        downloadBtn.classList.remove("hidden");
+
+        downloadBtn.onclick = () => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "animated-image.webm";
+          a.click();
+        };
+      };
+    });
+  </script>
+</body>
+</html>
