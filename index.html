@@ -1,228 +1,298 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Image → Video Converter (Stable Final)</title>
-<style>
-body{font-family:sans-serif;background:#f6fbff;margin:0;padding:2rem;display:flex;justify-content:center;}
-.card{background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:24px;border-radius:12px;max-width:720px;width:100%;}
-h1{margin:0 0 10px 0;}
-p{margin:0 0 18px 0;color:#555;}
-.upload-area{border:2px dashed #bcd6ff;border-radius:10px;padding:36px;text-align:center;background:#f7fbff;cursor:pointer;}
-.upload-area:hover{background:#edf5ff}
-input[type=file]{display:none}
-.preview{display:none;margin-top:16px;}
-.preview-box{width:100%;position:relative;background:#f2f5fa;border-radius:10px;overflow:hidden;min-height:200px;}
-canvas,video{position:absolute;top:0;left:0;object-fit:contain;border-radius:10px;}
-.controls{display:none;margin-top:12px;}
-label{font-size:14px;margin-bottom:6px;display:block;}
-input[type=range]{width:100%;accent-color:#2563eb}
-button{border:none;border-radius:8px;cursor:pointer;font-weight:600;}
-.btn-generate{width:100%;padding:12px;background:#3b82f6;color:#fff;margin-top:8px;}
-.btn-generate:hover{background:#2563eb}
-.progress{display:none;margin-top:14px;}
-.progress-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;}
-.progress-bg{height:10px;background:#e6eef9;border-radius:999px;overflow:hidden;}
-.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#46c2ff);}
-.bottom{display:flex;gap:10px;margin-top:14px;}
-.btn-download{flex:1;padding:12px;background:#16a34a;color:#fff;display:none;}
-.btn-download:hover{background:#15803d}
-.btn-reset{width:48px;height:48px;background:#e6eef9;border-radius:8px;display:none;align-items:center;justify-content:center;font-size:18px;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image → Video Converter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px;
+    }
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+    p.sub {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+    /* Upload */
+    .upload {
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      aspect-ratio: 1/1;
+      background: #f9fafb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .upload:hover { background: #f1f5f9; }
+    .upload svg { margin-bottom: 8px; }
+    .upload p { font-size: 14px; color: #475569; }
+    input[type=file] { display: none; }
+
+    /* Preview area */
+    .preview { display: none; text-align: center; }
+    .preview-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+    canvas, video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+    video.hidden, canvas.hidden { display: none; }
+
+    /* Controls */
+    .controls {
+      display: none;
+      margin-top: 16px;
+      text-align: left;
+    }
+    label {
+      font-size: 13px;
+      color: #374151;
+      display: block;
+      margin-bottom: 4px;
+    }
+    input[type=range] { width: 100%; accent-color: #2563eb; }
+    button {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .btn-generate {
+      width: 100%;
+      background: #3b82f6;
+      color: #fff;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    .btn-generate:hover { background: #2563eb; }
+
+    /* Progress */
+    .progress {
+      display: none;
+      margin-top: 20px;
+    }
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #475569;
+    }
+    .progress-bar-bg {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(to right, #3b82f6, #06b6d4);
+      transition: width 0.1s linear;
+    }
+
+    /* Bottom buttons */
+    .bottom {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .btn-download {
+      flex: 1;
+      background: #22c55e;
+      color: #fff;
+      padding: 12px;
+      display: none;
+    }
+    .btn-download:hover { background: #16a34a; }
+    .btn-reset {
+      width: 48px;
+      height: 48px;
+      background: #e2e8f0;
+      font-size: 20px;
+      color: #334155;
+      display: none;
+    }
+    .btn-reset:hover { background: #cbd5e1; }
+  </style>
 </head>
 <body>
-<div class="card">
+<div class="container">
   <h1>Image → Video Converter</h1>
-  <p>Unggah gambar, ubah jadi video singkat — tampil rapi dan stabil.</p>
+  <p class="sub">Ubah gambar menjadi video square (1:1)</p>
 
-  <div id="uploadArea" class="upload-area">
-    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2f7ff0" stroke-width="1.6">
-      <path d="M12 3v12M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Upload -->
+  <div id="uploadArea" class="upload">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.6">
+      <path d="M12 5v14M5 12h14"/>
     </svg>
-    <div><strong>Klik untuk unggah</strong></div>
-    <small>PNG, JPG, WEBP — max 10MB</small>
-    <input id="fileInput" type="file" accept="image/*"/>
+    <p><b>Klik untuk unggah</b></p>
+    <p style="font-size:12px;color:#94a3b8;">PNG, JPG, WEBP (max 10MB)</p>
+    <input id="fileInput" type="file" accept="image/*">
   </div>
 
-  <div id="previewBlock" class="preview">
-    <div id="previewBox" class="preview-box">
+  <!-- Preview -->
+  <div id="preview" class="preview">
+    <div class="preview-box">
       <canvas id="canvas"></canvas>
-      <video id="video" class="hidden" controls playsinline></video>
+      <video id="video" class="hidden" controls></video>
     </div>
 
     <div id="controls" class="controls">
-      <label>Durasi: <span id="durationLabel">3s</span></label>
-      <input id="duration" type="range" min="1" max="60" value="3"/>
-      <button id="generateBtn" class="btn-generate">Generate Video</button>
+      <label>Durasi: <span id="durVal">3s</span></label>
+      <input id="duration" type="range" min="1" max="60" value="3">
+      <button id="generate" class="btn-generate">Generate Video</button>
     </div>
 
-    <div id="progressWrap" class="progress">
+    <div id="progress" class="progress">
       <div class="progress-head">
         <span>Proses membuat video...</span>
-        <span id="progressText" style="color:#2563eb;font-weight:700">0%</span>
+        <span id="progText" style="color:#2563eb;font-weight:700">0%</span>
       </div>
-      <div class="progress-bg"><div id="progressBar" class="progress-bar"></div></div>
+      <div class="progress-bar-bg"><div id="progBar" class="progress-bar"></div></div>
     </div>
 
     <div class="bottom">
-      <button id="downloadBtn" class="btn-download">Download Video</button>
-      <div id="resetBtn" class="btn-reset">↻</div>
+      <button id="download" class="btn-download">Download Video</button>
+      <button id="reset" class="btn-reset">↻</button>
     </div>
   </div>
 </div>
 
 <script>
-(()=>{
-const fileInput=document.getElementById('fileInput');
-const uploadArea=document.getElementById('uploadArea');
-const previewBlock=document.getElementById('previewBlock');
-const previewBox=document.getElementById('previewBox');
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const video=document.getElementById('video');
-const controls=document.getElementById('controls');
-const duration=document.getElementById('duration');
-const durationLabel=document.getElementById('durationLabel');
-const generateBtn=document.getElementById('generateBtn');
-const progressWrap=document.getElementById('progressWrap');
-const progressBar=document.getElementById('progressBar');
-const progressText=document.getElementById('progressText');
-const downloadBtn=document.getElementById('downloadBtn');
-const resetBtn=document.getElementById('resetBtn');
+const upload = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const preview = document.getElementById('preview');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const video = document.getElementById('video');
+const controls = document.getElementById('controls');
+const durInput = document.getElementById('duration');
+const durVal = document.getElementById('durVal');
+const generate = document.getElementById('generate');
+const progress = document.getElementById('progress');
+const progBar = document.getElementById('progBar');
+const progText = document.getElementById('progText');
+const download = document.getElementById('download');
+const reset = document.getElementById('reset');
 
-let img=null, videoURL=null;
-const DPR=window.devicePixelRatio||1;
-let lastWidth=window.innerWidth;
+let img = null;
 
-// 🔹 Fungsi menggambar gambar agar proporsional
-function drawImageFit(){
-  if(!img)return;
-  const aspect=img.naturalWidth/img.naturalHeight;
-  const containerWidth=previewBox.clientWidth;
-  let displayWidth=containerWidth;
-  let displayHeight=displayWidth/aspect;
-  const maxH=window.innerHeight*0.7;
-  if(displayHeight>maxH){
-    displayHeight=maxH;
-    displayWidth=displayHeight*aspect;
-  }
-  previewBox.style.height=displayHeight+"px";
+durInput.oninput = () => durVal.textContent = durInput.value + "s";
 
-  const offsetX=(previewBox.clientWidth-displayWidth)/2;
-  const offsetY=(previewBox.clientHeight-displayHeight)/2;
-
-  [canvas,video].forEach(el=>{
-    el.style.width=displayWidth+"px";
-    el.style.height=displayHeight+"px";
-    el.style.left=offsetX+"px";
-    el.style.top=offsetY+"px";
-  });
-
-  canvas.width=displayWidth*DPR;
-  canvas.height=displayHeight*DPR;
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.clearRect(0,0,displayWidth,displayHeight);
-  ctx.drawImage(img,0,0,displayWidth,displayHeight);
-}
-
-// 🔹 Klik area upload
-uploadArea.addEventListener("click",()=>fileInput.click());
-
-// 🔹 Upload gambar
-fileInput.addEventListener("change",e=>{
-  const f=e.target.files[0];
-  if(!f || !f.type.startsWith("image/")) return;
-  
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const image=new Image();
-    image.onload=()=>{
-      img=image;
-      // tampilkan setelah gambar siap
-      uploadArea.style.display="none";
-      previewBlock.style.display="block";
-      controls.style.display="block";
-      progressWrap.style.display="none";
-      downloadBtn.style.display="none";
-      resetBtn.style.display="none";
+upload.onclick = () => fileInput.click();
+fileInput.onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    img = new Image();
+    img.onload = () => {
+      const size = Math.min(img.width, img.height);
+      const sx = (img.width - size) / 2;
+      const sy = (img.height - size) / 2;
+      canvas.width = canvas.height = 512;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 512, 512);
+      upload.style.display = "none";
+      preview.style.display = "block";
+      controls.style.display = "block";
       video.classList.add("hidden");
       canvas.classList.remove("hidden");
-      drawImageFit();
     };
-    image.src=reader.result;
+    img.src = r.result;
   };
-  reader.readAsDataURL(f);
-});
+  r.readAsDataURL(f);
+};
 
-// 🔹 Update label durasi
-duration.addEventListener("input",()=>durationLabel.textContent=duration.value+"s");
+generate.onclick = () => {
+  if (!img) return alert("Unggah gambar dulu!");
+  controls.style.display = "none";
+  progress.style.display = "block";
+  download.style.display = "none";
+  reset.style.display = "none";
 
-// 🔹 Generate video
-generateBtn.addEventListener("click",()=>{
-  if(!img)return;
-  controls.style.display="none";
-  progressWrap.style.display="block";
-  progressBar.style.width="0%";
-  progressText.textContent="0%";
-  const fps=30;
-  const stream=canvas.captureStream(fps);
-  const chunks=[];
-  const recorder=new MediaRecorder(stream);
-  recorder.ondataavailable=e=>chunks.push(e.data);
-  recorder.start();
-  const durationMs=duration.value*1000;
-  const start=performance.now();
-  function step(t){
-    const p=Math.min((t-start)/durationMs,1);
-    progressBar.style.width=(p*100)+"%";
-    progressText.textContent=Math.floor(p*100)+"%";
-    drawImageFit();
-    if(p<1)requestAnimationFrame(step);else recorder.stop();
+  const stream = canvas.captureStream(30);
+  const chunks = [];
+  const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
+  rec.ondataavailable = e => chunks.push(e.data);
+  rec.start();
+
+  const dur = +durInput.value * 1000;
+  const start = performance.now();
+
+  function frame(t) {
+    const p = Math.min((t - start) / dur, 1);
+    const per = Math.floor(p * 100);
+    progBar.style.width = per + "%";
+    progText.textContent = per + "%";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    if (p < 1) requestAnimationFrame(frame);
+    else rec.stop();
   }
-  requestAnimationFrame(step);
-  recorder.onstop=()=>{
-    const blob=new Blob(chunks,{type:"video/webm"});
-    if(videoURL) URL.revokeObjectURL(videoURL);
-    videoURL=URL.createObjectURL(blob);
-    video.src=videoURL;
+  requestAnimationFrame(frame);
+
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    video.src = url;
     video.classList.remove("hidden");
     canvas.classList.add("hidden");
-    progressWrap.style.display="none";
-    downloadBtn.style.display="block";
-    resetBtn.style.display="flex";
-    downloadBtn.onclick=()=>{
-      const a=document.createElement("a");
-      a.href=videoURL;a.download="video.webm";a.click();
+    progress.style.display = "none";
+    download.style.display = "block";
+    reset.style.display = "block";
+
+    download.onclick = () => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "image-video.webm";
+      a.click();
     };
   };
-});
+};
 
-// 🔹 Reset total
-resetBtn.addEventListener("click",()=>{
-  if(videoURL){ URL.revokeObjectURL(videoURL); videoURL=null; }
-  img=null;
-  fileInput.value="";
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  video.pause();
-  video.removeAttribute("src");
-  video.load();
-  uploadArea.style.display="block";
-  previewBlock.style.display="none";
-});
-
-// 🔹 Redraw saat resize besar
-let resizeTimer;
-window.addEventListener("resize",()=>{
-  clearTimeout(resizeTimer);
-  resizeTimer=setTimeout(()=>{
-    if(Math.abs(window.innerWidth-lastWidth)>30){
-      lastWidth=window.innerWidth;
-      drawImageFit();
-    }
-  },300);
-});
-})();
+reset.onclick = () => {
+  preview.style.display = "none";
+  upload.style.display = "flex";
+  download.style.display = "none";
+  reset.style.display = "none";
+  progress.style.display = "none";
+  controls.style.display = "none";
+  fileInput.value = "";
+  img = null;
+};
 </script>
 </body>
 </html>
