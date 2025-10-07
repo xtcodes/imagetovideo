@@ -56,7 +56,7 @@
           <video id="preview-video" class="w-full hidden" controls></video>
         </div>
 
-        <!-- Controls moved BELOW preview -->
+        <!-- Controls BELOW preview -->
         <div id="controls-section" class="space-y-4 mt-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Duration:
@@ -83,11 +83,15 @@
           </div>
         </div>
 
-        <!-- Download -->
-        <div class="mt-6">
+        <!-- Download + Reset -->
+        <div class="mt-6 flex items-center gap-3">
           <button id="download-btn"
-            class="hidden w-full bg-green-500 text-white font-semibold py-3 px-6 rounded-lg shadow hover:bg-green-600 transition-all duration-300">
+            class="hidden flex-1 bg-green-500 text-white font-semibold py-3 px-6 rounded-lg shadow hover:bg-green-600 transition-all duration-300">
             Download Video
+          </button>
+          <button id="reset-btn"
+            class="hidden flex-shrink-0 w-12 h-12 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300 transition-all duration-300 flex items-center justify-center text-xl font-bold">
+            ↻
           </button>
         </div>
       </div>
@@ -100,6 +104,7 @@
     const preview = document.getElementById("preview");
     const previewVideo = document.getElementById("preview-video");
     const downloadBtn = document.getElementById("download-btn");
+    const resetBtn = document.getElementById("reset-btn");
     const durationInput = document.getElementById("duration");
     const durationLabel = document.getElementById("duration-value");
     const progressContainer = document.getElementById("progress-container");
@@ -127,8 +132,8 @@
           canvas.width = img.width;
           canvas.height = img.height;
           ctx.drawImage(img, 0, 0);
-          uploadSection.classList.add("hidden"); // sembunyikan upload
-          preview.classList.remove("hidden"); // tampilkan preview & kontrol
+          uploadSection.classList.add("hidden");
+          preview.classList.remove("hidden");
         };
         img.src = ev.target.result;
       };
@@ -142,7 +147,7 @@
         return;
       }
 
-      // Sembunyikan kontrol saat proses berjalan
+      // Hide controls during process
       durationInput.classList.add("hidden");
       controlsSection.querySelector("label").classList.add("hidden");
       generateBtn.classList.add("hidden");
@@ -152,6 +157,7 @@
       previewVideo.classList.add("hidden");
       canvas.classList.remove("hidden");
       downloadBtn.classList.add("hidden");
+      resetBtn.classList.add("hidden");
       progressBar.style.width = "0%";
       progressText.textContent = "0%";
 
@@ -167,7 +173,6 @@
       const drawFrame = (timestamp) => {
         const elapsed = timestamp - startTime;
         const progress = Math.min(elapsed / durationMs, 1);
-
         const percent = Math.floor(progress * 100);
         progressBar.style.width = `${percent}%`;
         progressText.textContent = `${percent}%`;
@@ -191,8 +196,10 @@
         canvas.classList.add("hidden");
         progressContainer.classList.add("hidden");
 
-        // Tampilkan tombol download full width
+        // Show Download + Reset buttons
         downloadBtn.classList.remove("hidden");
+        resetBtn.classList.remove("hidden");
+
         downloadBtn.onclick = () => {
           const a = document.createElement("a");
           a.href = url;
@@ -200,6 +207,22 @@
           a.click();
         };
       };
+    });
+
+    // Reset functionality
+    resetBtn.addEventListener("click", () => {
+      // Reset semua ke kondisi awal
+      preview.classList.add("hidden");
+      uploadSection.classList.remove("hidden");
+      previewVideo.src = "";
+      originalImage = null;
+      downloadBtn.classList.add("hidden");
+      resetBtn.classList.add("hidden");
+
+      // Tampilkan ulang kontrol default
+      durationInput.classList.remove("hidden");
+      controlsSection.querySelector("label").classList.remove("hidden");
+      generateBtn.classList.remove("hidden");
     });
   </script>
 </body>
