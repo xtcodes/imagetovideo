@@ -1,99 +1,210 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Image to Video Converter</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .gradient-bg {
-      background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Roboto, sans-serif;
     }
+
+    body {
+      background: #f7f9fb;
+      color: #333;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      color: #1e293b;
+      margin-bottom: 8px;
+    }
+
+    p.sub {
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .upload-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      background: #f8fafc;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+
+    .upload-area:hover {
+      background: #f1f5f9;
+    }
+
+    .upload-area p {
+      font-size: 14px;
+      color: #475569;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     .preview-container {
-      position: relative;
+      border-radius: 8px;
       overflow: hidden;
-      border-radius: 1rem;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
     }
-    .progress-bar {
-      height: 12px;
+
+    canvas, video {
+      display: block;
+      width: 100%;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #2563eb;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 16px;
+      border: none;
       border-radius: 6px;
-      background: linear-gradient(to right, #3b82f6, #06b6d4);
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-generate {
+      width: 100%;
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-generate:hover {
+      background: #2563eb;
+    }
+
+    .progress-container {
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      height: 10px;
+      width: 0%;
+      background: linear-gradient(to right, #3b82f6, #38bdf8);
+      border-radius: 5px;
       transition: width 0.1s linear;
+    }
+
+    .progress-bg {
+      background: #e2e8f0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .bottom-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn-download {
+      flex: 1;
+      background: #22c55e;
+      color: white;
+    }
+
+    .btn-download:hover {
+      background: #16a34a;
+    }
+
+    .btn-reset {
+      width: 48px;
+      height: 48px;
+      background: #e2e8f0;
+      color: #475569;
+      font-weight: bold;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .btn-reset:hover {
+      background: #cbd5e1;
     }
   </style>
 </head>
-<body class="min-h-screen gradient-bg p-8">
-  <div class="max-w-4xl mx-auto">
-    <header class="text-center mb-12">
-      <h1 class="text-4xl font-bold text-gray-800 mb-4">Image to Video Converter</h1>
-      <p class="text-lg text-gray-600">Transform static images into smooth motion videos</p>
-    </header>
+<body>
+  <h1>Image to Video Converter</h1>
+  <p class="sub">Transform static images into smooth motion videos</p>
 
-    <div class="bg-white rounded-2xl p-8 shadow-xl">
-      <!-- Upload -->
-      <div id="upload-section" class="mb-8">
-        <div class="flex items-center justify-center w-full">
-          <label
-            class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-              <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-              </svg>
-              <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-              <p class="text-xs text-gray-500">PNG, JPG or WEBP (MAX. 10MB)</p>
-            </div>
-            <input id="file-upload" type="file" class="hidden" accept="image/*">
-          </label>
+  <div class="container">
+    <!-- Upload Section -->
+    <div id="upload-section" class="upload-area">
+      <p><strong>Click to upload</strong> or drag an image here</p>
+      <p style="font-size: 12px; color:#94a3b8;">PNG, JPG, WEBP (max 10MB)</p>
+      <input id="file-upload" type="file" accept="image/*" class="hidden">
+    </div>
+
+    <!-- Preview Section -->
+    <div id="preview" class="hidden">
+      <div class="preview-container">
+        <canvas id="preview-canvas"></canvas>
+        <video id="preview-video" class="hidden" controls></video>
+      </div>
+
+      <div id="controls-section">
+        <div class="control-group">
+          <label>Duration: <span id="duration-value">3s</span></label>
+          <input type="range" id="duration" min="1" max="60" value="3">
+        </div>
+
+        <button id="generate-btn" class="btn btn-generate">Generate Video</button>
+
+        <div id="progress-container" class="progress-container hidden">
+          <div style="display:flex; justify-content:space-between; font-size:13px; color:#475569; margin-bottom:5px;">
+            <span>Generating video...</span>
+            <span id="progress-text" style="font-weight:bold; color:#2563eb;">0%</span>
+          </div>
+          <div class="progress-bg"><div id="progress-bar" class="progress-bar"></div></div>
         </div>
       </div>
 
-      <!-- Preview -->
-      <div id="preview" class="mt-8 hidden">
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">Preview</h3>
-        <div class="preview-container">
-          <canvas id="preview-canvas" class="w-full"></canvas>
-          <video id="preview-video" class="w-full hidden" controls></video>
-        </div>
-
-        <!-- Controls BELOW preview -->
-        <div id="controls-section" class="space-y-4 mt-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Duration:
-              <span id="duration-value" class="font-semibold text-blue-600">3s</span>
-            </label>
-            <input type="range" id="duration" min="1" max="60" value="3"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500">
-          </div>
-
-          <button id="generate-btn"
-            class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300">
-            Generate Video
-          </button>
-
-          <!-- Loading Progress -->
-          <div id="progress-container" class="hidden mt-4">
-            <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-700">Generating video...</span>
-              <span id="progress-text" class="text-sm font-semibold text-blue-600">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-3">
-              <div id="progress-bar" class="progress-bar w-0"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Download + Reset -->
-        <div class="mt-6 flex items-center gap-3">
-          <button id="download-btn"
-            class="hidden flex-1 bg-green-500 text-white font-semibold py-3 px-6 rounded-lg shadow hover:bg-green-600 transition-all duration-300">
-            Download Video
-          </button>
-          <button id="reset-btn"
-            class="hidden flex-shrink-0 w-12 h-12 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300 transition-all duration-300 flex items-center justify-center text-xl font-bold">
-            ↻
-          </button>
-        </div>
+      <div class="bottom-actions">
+        <button id="download-btn" class="btn btn-download hidden">Download Video</button>
+        <button id="reset-btn" class="btn btn-reset hidden">↻</button>
       </div>
     </div>
   </div>
@@ -101,6 +212,7 @@
   <script>
     const canvas = document.getElementById("preview-canvas");
     const ctx = canvas.getContext("2d");
+    const uploadSection = document.getElementById("upload-section");
     const preview = document.getElementById("preview");
     const previewVideo = document.getElementById("preview-video");
     const downloadBtn = document.getElementById("download-btn");
@@ -110,17 +222,18 @@
     const progressContainer = document.getElementById("progress-container");
     const progressBar = document.getElementById("progress-bar");
     const progressText = document.getElementById("progress-text");
-    const uploadSection = document.getElementById("upload-section");
-    const controlsSection = document.getElementById("controls-section");
     const generateBtn = document.getElementById("generate-btn");
     let originalImage = null;
 
-    // Update duration label
     durationInput.addEventListener("input", () => {
       durationLabel.textContent = `${durationInput.value}s`;
     });
 
-    // Handle upload
+    // Upload click & preview
+    uploadSection.addEventListener("click", () => {
+      document.getElementById("file-upload").click();
+    });
+
     document.getElementById("file-upload").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -142,15 +255,10 @@
 
     // Generate video
     generateBtn.addEventListener("click", async () => {
-      if (!originalImage) {
-        alert("Please upload an image first!");
-        return;
-      }
+      if (!originalImage) return alert("Please upload an image first!");
 
-      // Hide controls during process
-      durationInput.classList.add("hidden");
-      controlsSection.querySelector("label").classList.add("hidden");
-      generateBtn.classList.add("hidden");
+      durationInput.style.display = "none";
+      generateBtn.style.display = "none";
       progressContainer.classList.remove("hidden");
 
       const duration = parseFloat(durationInput.value);
@@ -176,15 +284,11 @@
         const percent = Math.floor(progress * 100);
         progressBar.style.width = `${percent}%`;
         progressText.textContent = `${percent}%`;
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
 
-        if (progress < 1) {
-          requestAnimationFrame(drawFrame);
-        } else {
-          recorder.stop();
-        }
+        if (progress < 1) requestAnimationFrame(drawFrame);
+        else recorder.stop();
       };
       requestAnimationFrame(drawFrame);
 
@@ -195,34 +299,27 @@
         previewVideo.classList.remove("hidden");
         canvas.classList.add("hidden");
         progressContainer.classList.add("hidden");
-
-        // Show Download + Reset buttons
         downloadBtn.classList.remove("hidden");
         resetBtn.classList.remove("hidden");
 
         downloadBtn.onclick = () => {
           const a = document.createElement("a");
           a.href = url;
-          a.download = "static-image-video.webm";
+          a.download = "generated-video.webm";
           a.click();
         };
       };
     });
 
-    // Reset functionality
     resetBtn.addEventListener("click", () => {
-      // Reset semua ke kondisi awal
       preview.classList.add("hidden");
       uploadSection.classList.remove("hidden");
       previewVideo.src = "";
       originalImage = null;
       downloadBtn.classList.add("hidden");
       resetBtn.classList.add("hidden");
-
-      // Tampilkan ulang kontrol default
-      durationInput.classList.remove("hidden");
-      controlsSection.querySelector("label").classList.remove("hidden");
-      generateBtn.classList.remove("hidden");
+      durationInput.style.display = "";
+      generateBtn.style.display = "";
     });
   </script>
 </body>
