@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Image → Video Converter (Final Fix)</title>
+<title>Image → Video Converter (Stable Final)</title>
 <style>
 body{font-family:sans-serif;background:#f6fbff;margin:0;padding:2rem;display:flex;justify-content:center;}
 .card{background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.05);padding:24px;border-radius:12px;max-width:720px;width:100%;}
@@ -95,6 +95,7 @@ let img=null, videoURL=null;
 const DPR=window.devicePixelRatio||1;
 let lastWidth=window.innerWidth;
 
+// 🔹 Fungsi menggambar gambar agar proporsional
 function drawImageFit(){
   if(!img)return;
   const aspect=img.naturalWidth/img.naturalHeight;
@@ -108,7 +109,6 @@ function drawImageFit(){
   }
   previewBox.style.height=displayHeight+"px";
 
-  // Center image in preview
   const offsetX=(previewBox.clientWidth-displayWidth)/2;
   const offsetY=(previewBox.clientHeight-displayHeight)/2;
 
@@ -126,34 +126,39 @@ function drawImageFit(){
   ctx.drawImage(img,0,0,displayWidth,displayHeight);
 }
 
+// 🔹 Klik area upload
 uploadArea.addEventListener("click",()=>fileInput.click());
+
+// 🔹 Upload gambar
 fileInput.addEventListener("change",e=>{
   const f=e.target.files[0];
-  if(f&&f.type.startsWith("image/")){
-    const reader=new FileReader();
-    reader.onload=()=>{
-      const image=new Image();
-      image.onload=()=>{
-        img=image;
-        // tampilkan setelah gambar siap
-        uploadArea.style.display="none";
-        previewBlock.style.display="block";
-        controls.style.display="block";
-        progressWrap.style.display="none";
-        downloadBtn.style.display="none";
-        resetBtn.style.display="none";
-        video.classList.add("hidden");
-        canvas.classList.remove("hidden");
-        requestAnimationFrame(drawImageFit);
-      };
-      image.src=reader.result;
+  if(!f || !f.type.startsWith("image/")) return;
+  
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const image=new Image();
+    image.onload=()=>{
+      img=image;
+      // tampilkan setelah gambar siap
+      uploadArea.style.display="none";
+      previewBlock.style.display="block";
+      controls.style.display="block";
+      progressWrap.style.display="none";
+      downloadBtn.style.display="none";
+      resetBtn.style.display="none";
+      video.classList.add("hidden");
+      canvas.classList.remove("hidden");
+      drawImageFit();
     };
-    reader.readAsDataURL(f);
-  }
+    image.src=reader.result;
+  };
+  reader.readAsDataURL(f);
 });
 
+// 🔹 Update label durasi
 duration.addEventListener("input",()=>durationLabel.textContent=duration.value+"s");
 
+// 🔹 Generate video
 generateBtn.addEventListener("click",()=>{
   if(!img)return;
   controls.style.display="none";
@@ -178,6 +183,7 @@ generateBtn.addEventListener("click",()=>{
   requestAnimationFrame(step);
   recorder.onstop=()=>{
     const blob=new Blob(chunks,{type:"video/webm"});
+    if(videoURL) URL.revokeObjectURL(videoURL);
     videoURL=URL.createObjectURL(blob);
     video.src=videoURL;
     video.classList.remove("hidden");
@@ -192,15 +198,20 @@ generateBtn.addEventListener("click",()=>{
   };
 });
 
+// 🔹 Reset total
 resetBtn.addEventListener("click",()=>{
-  if(videoURL)URL.revokeObjectURL(videoURL);
-  videoURL=null;img=null;
+  if(videoURL){ URL.revokeObjectURL(videoURL); videoURL=null; }
+  img=null;
   fileInput.value="";
-  previewBlock.style.display="none";
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
   uploadArea.style.display="block";
+  previewBlock.style.display="none";
 });
 
-// Redraw saat resize besar (bukan scroll)
+// 🔹 Redraw saat resize besar
 let resizeTimer;
 window.addEventListener("resize",()=>{
   clearTimeout(resizeTimer);
