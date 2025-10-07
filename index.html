@@ -3,82 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Image → Video (fix preview)</title>
+  <title>Image → Video (scroll fix)</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background:#f6fbff;color:#0f172a;padding:36px 18px;
-      display:flex;align-items:flex-start;justify-content:center;
+      font-family: system-ui, sans-serif;
+      background:#f7fbff;color:#0f172a;
+      padding:36px 18px;
+      display:flex;justify-content:center;
     }
-    .card{ width:100%; max-width:720px; background:#fff; border-radius:12px;
-      padding:22px; box-shadow:0 6px 24px rgba(16,24,40,0.06); }
-    h1{font-size:20px;margin-bottom:6px;color:#0b1220}
-    p.sub{color:#52607a;margin-bottom:18px}
+    .card{width:100%;max-width:720px;background:#fff;border-radius:12px;padding:22px;
+      box-shadow:0 6px 24px rgba(16,24,40,0.06);}
+    h1{font-size:20px;margin-bottom:6px;}
+    p.sub{color:#52607a;margin-bottom:18px;}
 
-    /* upload area */
-    .upload-area{
-      width:100%; border:2px dashed #d9e7fb; border-radius:10px; padding:34px;
-      background:#f7fbff; color:#2b3b4a; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:8px; cursor:pointer;
-      transition:background .12s;
-    }
-    .upload-area:hover{background:#eef7ff}
+    .upload-area{border:2px dashed #cfe0fa;border-radius:10px;padding:34px;
+      background:#f4f9ff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;}
+    .upload-area:hover{background:#e9f3ff}
     input[type=file]{display:none}
 
-    /* preview area */
-    .preview { display:none; margin-top:14px; }
-    .preview-box {
-      width:100%; position:relative; border-radius:10px; overflow:hidden;
-      background:#f1f5f9;
-      /* height will be set inline in JS to match image aspect */
-      display:flex; align-items:flex-start; justify-content:flex-start;
-    }
-    canvas, video{
-      position:absolute; top:0; left:0; object-fit:contain;
-      border-radius:10px;
-      /* width/height will be set inline from JS */
-    }
-    .hidden{ display:none !important; }
+    .preview{display:none;margin-top:14px;}
+    .preview-box{width:100%;position:relative;border-radius:10px;overflow:hidden;background:#f1f5f9;}
+    canvas,video{position:absolute;top:0;left:0;object-fit:contain;border-radius:10px;}
+    .hidden{display:none!important}
 
-    /* controls */
-    .controls{ display:none; margin-top:12px; }
-    label{ font-size:13px; color:#334155; margin-bottom:6px; display:block }
-    input[type=range]{ width:100%; accent-color:#2563eb }
+    .controls{display:none;margin-top:12px;}
+    label{font-size:13px;margin-bottom:6px;display:block;}
+    input[type=range]{width:100%;accent-color:#2563eb}
+    .btn{border:none;border-radius:8px;padding:12px 14px;font-weight:600;cursor:pointer}
+    .btn-generate{width:100%;background:#3b82f6;color:#fff;margin-top:8px;}
+    .btn-generate:hover{background:#2563eb}
 
-    .btn{ border:none; border-radius:8px; padding:12px 14px; font-weight:600; cursor:pointer; transition:transform .08s, background .12s; }
-    .btn-generate{ width:100%; background:#3b82f6; color:#fff; margin-top:8px; }
-    .btn-generate:hover{ background:#2563eb }
+    .progress{display:none;margin-top:14px;}
+    .progress-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+    .progress-bg{height:10px;background:#e6eef9;border-radius:999px;overflow:hidden}
+    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#46c2ff);transition:width .08s linear}
 
-    /* progress */
-    .progress{ display:none; margin-top:14px }
-    .progress-head{ display:flex; justify-content:space-between; font-size:13px; color:#475569; margin-bottom:6px }
-    .progress-bg{ height:10px; background:#e6eef9; border-radius:999px; overflow:hidden }
-    .progress-bar{ height:100%; width:0%; background:linear-gradient(90deg,#3b82f6,#46c2ff); transition:width .08s linear }
-
-    /* bottom actions */
-    .bottom{ display:flex; gap:10px; margin-top:14px; align-items:center }
-    .btn-download{ flex:1; background:#16a34a; color:#fff; padding:12px; border-radius:8px; display:none; }
-    .btn-download:hover{ background:#15803d }
-    .btn-reset{ width:48px; height:48px; background:#e6eef9; border-radius:8px; display:none; align-items:center; justify-content:center; font-size:18px }
+    .bottom{display:flex;gap:10px;margin-top:14px;}
+    .btn-download{flex:1;background:#16a34a;color:#fff;padding:12px;border-radius:8px;display:none;}
+    .btn-reset{width:48px;height:48px;background:#e6eef9;border-radius:8px;display:none;align-items:center;justify-content:center;font-size:18px;}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Image → Video (fix preview)</h1>
-    <p class="sub">Upload gambar—preview & video mengikuti rasio asli gambar (tanpa crop).</p>
+    <h1>Image → Video</h1>
+    <p class="sub">Gambar selalu proporsional & stabil walau di-scroll atau diresize.</p>
 
-    <!-- Upload -->
-    <div id="uploadArea" class="upload-area" title="Klik untuk pilih gambar atau drop">
+    <div id="uploadArea" class="upload-area">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#2f7ff0" stroke-width="1.6">
         <path d="M12 3v12M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div style="font-weight:700">Klik untuk unggah</div>
-      <div style="font-size:13px;color:#7b8aa4">PNG, JPG, WEBP — max 10MB</div>
-      <input id="fileInput" type="file" accept="image/*" />
+      <b>Klik untuk unggah</b>
+      <small>PNG, JPG, WEBP — max 10MB</small>
+      <input id="fileInput" type="file" accept="image/*"/>
     </div>
 
-    <!-- Preview + controls -->
     <div id="previewBlock" class="preview">
       <div id="previewBox" class="preview-box" style="height:200px">
         <canvas id="canvas"></canvas>
@@ -87,12 +66,12 @@
 
       <div id="controls" class="controls">
         <label>Durasi: <span id="durationLabel">3s</span></label>
-        <input id="duration" type="range" min="1" max="60" value="3" />
+        <input id="duration" type="range" min="1" max="60" value="3"/>
         <button id="generateBtn" class="btn btn-generate">Generate Video</button>
       </div>
 
       <div id="progressWrap" class="progress">
-        <div class="progress-head"><div>Proses membuat video...</div><div id="progressText" style="color:#2563eb;font-weight:700">0%</div></div>
+        <div class="progress-head"><span>Proses membuat video...</span><span id="progressText" style="color:#2563eb;font-weight:700">0%</span></div>
         <div class="progress-bg"><div id="progressBar" class="progress-bar"></div></div>
       </div>
 
@@ -121,220 +100,124 @@
     const progressWrap = document.getElementById('progressWrap');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-
     const downloadBtn = document.getElementById('downloadBtn');
     const resetBtn = document.getElementById('resetBtn');
 
-    let img = null;
-    let currentObjectURL = null;
-    const DPR = window.devicePixelRatio || 1;
+    let img=null; let currentURL=null;
+    const DPR=window.devicePixelRatio||1;
 
-    function revokeCurrent() {
-      if (currentObjectURL) {
-        try { URL.revokeObjectURL(currentObjectURL); } catch(e){}
-        currentObjectURL = null;
-      }
-    }
+    durationInput.addEventListener("input",()=>durationLabel.textContent=durationInput.value+"s");
 
-    // compute and apply canvas/video CSS & internal size to match image aspect
-    function layoutForImage() {
-      if (!img) return;
-      const aspect = img.naturalWidth / img.naturalHeight || 1;
-      // container full width
-      const containerWidth = previewBox.clientWidth || previewBox.getBoundingClientRect().width || 400;
-      let displayWidth = containerWidth;
-      let displayHeight = Math.round(displayWidth / aspect);
-
-      // clamp max height to avoid huge tall previews (75% viewport height)
-      const maxH = Math.round(window.innerHeight * 0.75);
-      if (displayHeight > maxH) {
-        displayHeight = maxH;
-        displayWidth = Math.round(displayHeight * aspect);
-      }
-
-      // set previewBox height
-      previewBox.style.height = displayHeight + 'px';
-
-      // set canvas/video CSS size and position (center horizontally if narrower)
-      const leftOffset = Math.round(Math.max(0, (previewBox.clientWidth - displayWidth) / 2));
-
-      canvas.style.width = displayWidth + 'px';
-      canvas.style.height = displayHeight + 'px';
-      canvas.style.left = leftOffset + 'px';
-      canvas.style.top = '0px';
-
-      video.style.width = displayWidth + 'px';
-      video.style.height = displayHeight + 'px';
-      video.style.left = leftOffset + 'px';
-      video.style.top = '0px';
-
-      // set internal pixel buffer for crispness
-      canvas.width = Math.round(displayWidth * DPR);
-      canvas.height = Math.round(displayHeight * DPR);
-
-      // set transform so ctx units equal CSS px
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-
-      // draw image scaled to fit the canvas (no crop)
-      ctx.clearRect(0,0, displayWidth, displayHeight);
-      ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, 0, displayWidth, displayHeight);
-    }
-
-    // update duration label
-    durationInput.addEventListener('input', () => {
-      durationLabel.textContent = durationInput.value + 's';
+    uploadArea.addEventListener("click",()=>fileInput.click());
+    uploadArea.addEventListener("dragover",e=>{e.preventDefault();uploadArea.style.background="#eaf3ff";});
+    uploadArea.addEventListener("dragleave",()=>uploadArea.style.background="");
+    uploadArea.addEventListener("drop",e=>{
+      e.preventDefault();uploadArea.style.background="";
+      const f=e.dataTransfer.files[0]; if(f) handleFile(f);
     });
+    fileInput.addEventListener("change",e=>{const f=e.target.files[0];if(f) handleFile(f);});
 
-    // upload handlers
-    uploadArea.addEventListener('click', () => fileInput.click());
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.background = '#eef7ff'; });
-    uploadArea.addEventListener('dragleave', e => { uploadArea.style.background = ''; });
-    uploadArea.addEventListener('drop', e => {
-      e.preventDefault(); uploadArea.style.background = '';
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) handleFile(f);
-    });
-
-    fileInput.addEventListener('change', (ev) => {
-      const f = ev.target.files && ev.target.files[0];
-      if (f) handleFile(f);
-    });
-
-    function handleFile(file) {
-      if (!file.type.startsWith('image/')) { alert('File bukan gambar.'); return; }
-      if (file.size > 10 * 1024 * 1024) { alert('Maks 10MB.'); return; }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const tmp = new Image();
-        tmp.onload = () => {
-          img = tmp;
-          // layout & draw
-          layoutForImage();
-
-          // UI: show preview + controls
-          uploadArea.style.display = 'none';
-          previewBlock.style.display = 'block';
-          controls.style.display = 'block';
-          progressWrap.style.display = 'none';
-          downloadBtn.style.display = 'none';
-          resetBtn.style.display = 'none';
-          video.classList.add('hidden');
-          canvas.classList.remove('hidden');
-
-          // revoke old URL if any
-          revokeCurrent();
-        };
-        tmp.src = reader.result;
-      };
+    function handleFile(file){
+      if(!file.type.startsWith("image/")) return alert("Harus gambar!");
+      const reader=new FileReader();
+      reader.onload=()=>{const i=new Image();i.onload=()=>{img=i;setupPreview();};i.src=reader.result;};
       reader.readAsDataURL(file);
     }
 
-    // On resize, relayout (keep preview proportional)
-    window.addEventListener('resize', () => {
-      if (img) layoutForImage();
-    });
+    function setupPreview(){
+      uploadArea.style.display="none";
+      previewBlock.style.display="block";
+      controls.style.display="block";
+      progressWrap.style.display="none";
+      downloadBtn.style.display="none";
+      resetBtn.style.display="none";
+      video.classList.add("hidden");
+      canvas.classList.remove("hidden");
+      redraw();
+    }
 
-    // Generate video
-    generateBtn.addEventListener('click', () => {
-      if (!img) { alert('Silakan unggah gambar dulu.'); return; }
+    function redraw(){
+      if(!img) return;
+      requestAnimationFrame(()=>{
+        const aspect=img.naturalWidth/img.naturalHeight;
+        const boxWidth=previewBox.clientWidth;
+        let displayWidth=boxWidth;
+        let displayHeight=displayWidth/aspect;
+        const maxH=window.innerHeight*0.75;
+        if(displayHeight>maxH){
+          displayHeight=maxH;
+          displayWidth=displayHeight*aspect;
+        }
+        previewBox.style.height=displayHeight+"px";
+        const left=(previewBox.clientWidth-displayWidth)/2;
+        [canvas,video].forEach(el=>{
+          el.style.width=displayWidth+"px";
+          el.style.height=displayHeight+"px";
+          el.style.left=left+"px";
+        });
+        canvas.width=displayWidth*DPR;
+        canvas.height=displayHeight*DPR;
+        ctx.setTransform(DPR,0,0,DPR,0,0);
+        ctx.clearRect(0,0,displayWidth,displayHeight);
+        ctx.drawImage(img,0,0,displayWidth,displayHeight);
+      });
+    }
 
-      // hide controls, show progress
-      controls.style.display = 'none';
-      progressWrap.style.display = 'block';
-      progressBar.style.width = '0%';
-      progressText.textContent = '0%';
-      downloadBtn.style.display = 'none';
-      resetBtn.style.display = 'none';
-      video.classList.add('hidden');
-      canvas.classList.remove('hidden');
+    // Observe changes in preview box width (fix scroll resize bug)
+    const ro = new ResizeObserver(redraw);
+    ro.observe(previewBox);
+    window.addEventListener("resize", redraw);
 
-      // capture stream from canvas
-      const fps = 30;
-      const stream = canvas.captureStream(fps);
-      const chunks = [];
+    generateBtn.addEventListener("click",()=>{
+      if(!img)return;
+      controls.style.display="none";
+      progressWrap.style.display="block";
+      downloadBtn.style.display="none";
+      resetBtn.style.display="none";
 
-      // create MediaRecorder with fallback
-      let recorder = null;
-      const mimes = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm',''];
-      for (const m of mimes) {
-        try {
-          recorder = m ? new MediaRecorder(stream, { mimeType: m }) : new MediaRecorder(stream);
-          break;
-        } catch (e) { recorder = null; }
-      }
-      if (!recorder) {
-        alert('MediaRecorder tidak tersedia di browser ini.');
-        progressWrap.style.display = 'none';
-        controls.style.display = 'block';
-        return;
-      }
-
-      recorder.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+      const fps=30;
+      const stream=canvas.captureStream(fps);
+      const chunks=[];
+      const recorder=new MediaRecorder(stream);
+      recorder.ondataavailable=e=>chunks.push(e.data);
       recorder.start();
 
-      const durationMs = Math.max(1000, Number(durationInput.value || 3) * 1000);
-      const start = performance.now();
-
-      function step(now) {
-        const progress = Math.min((now - start) / durationMs, 1);
-        const pct = Math.floor(progress * 100);
-        progressBar.style.width = pct + '%';
-        progressText.textContent = pct + '%';
-
-        // redraw each frame (keeps recording updated)
-        layoutForImage();
-
-        if (progress < 1) requestAnimationFrame(step);
-        else recorder.stop();
+      const dur=durationInput.value*1000;
+      const start=performance.now();
+      function draw(t){
+        const p=Math.min((t-start)/dur,1);
+        progressBar.style.width=(p*100)+"%";
+        progressText.textContent=Math.floor(p*100)+"%";
+        redraw();
+        if(p<1)requestAnimationFrame(draw);else recorder.stop();
       }
-      requestAnimationFrame(step);
+      requestAnimationFrame(draw);
 
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: chunks[0]?.type || 'video/webm' });
-        revokeCurrent();
-        currentObjectURL = URL.createObjectURL(blob);
-
-        // show video preview
-        video.src = currentObjectURL;
-        video.classList.remove('hidden');
-        canvas.classList.add('hidden');
-
-        // hide progress, show download + reset
-        progressWrap.style.display = 'none';
-        downloadBtn.style.display = 'block';
-        resetBtn.style.display = 'flex';
-
-        downloadBtn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = currentObjectURL;
-          a.download = 'generated-video.webm';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+      recorder.onstop=()=>{
+        const blob=new Blob(chunks,{type:"video/webm"});
+        currentURL=URL.createObjectURL(blob);
+        video.src=currentURL;
+        video.classList.remove("hidden");
+        canvas.classList.add("hidden");
+        progressWrap.style.display="none";
+        downloadBtn.style.display="block";
+        resetBtn.style.display="flex";
+        downloadBtn.onclick=()=>{
+          const a=document.createElement("a");
+          a.href=currentURL;a.download="video.webm";a.click();
         };
       };
     });
 
-    // Reset
-    resetBtn.addEventListener('click', () => {
-      revokeCurrent();
-      img = null;
-      fileInput.value = '';
-      previewBlock.style.display = 'none';
-      uploadArea.style.display = 'flex';
-      controls.style.display = 'none';
-      progressWrap.style.display = 'none';
-      downloadBtn.style.display = 'none';
-      resetBtn.style.display = 'none';
-      video.src = '';
-      canvas.width = canvas.height = 0;
-      previewBox.style.height = '200px';
+    resetBtn.addEventListener("click",()=>{
+      img=null;
+      fileInput.value="";
+      previewBlock.style.display="none";
+      uploadArea.style.display="flex";
+      video.src="";
+      currentURL&&URL.revokeObjectURL(currentURL);
+      currentURL=null;
     });
-
-    // initial
-    previewBlock.style.display = 'none';
   })();
   </script>
 </body>
