@@ -1,416 +1,242 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Image → Video (clean)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image → Video Converter</title>
   <style>
-    /* ---------- Reset & base ---------- */
-    * { box-sizing: border-box; margin:0; padding:0; }
-    html,body { height:100%; }
-    body {
-      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
-      background: #f6fbff;
-      color: #0f172a;
-      padding: 36px 18px;
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:Inter,Segoe UI,Roboto,sans-serif;
+      background:#f7fafc;
+      color:#1e293b;
+      padding:30px;
       display:flex;
-      align-items:flex-start;
       justify-content:center;
     }
-
-    /* ---------- Card ---------- */
-    .card {
-      width: 100%;
-      max-width: 680px;
-      background: #fff;
-      border-radius: 12px;
-      padding: 22px;
-      box-shadow: 0 6px 24px rgba(16,24,40,0.06);
-    }
-
-    h1 {
-      font-size:20px; margin-bottom:6px; color:#0b1220;
-    }
-    p.sub { font-size:13px; color:#52607a; margin-bottom:18px; }
-
-    /* ---------- Upload (square) ---------- */
-    .upload-area {
+    .container{
       width:100%;
-      aspect-ratio: 1 / 1;              /* ensures 1x1 */
-      border: 2px dashed #d9e7fb;
+      max-width:640px;
+      background:#fff;
+      border-radius:12px;
+      padding:24px;
+      box-shadow:0 4px 16px rgba(0,0,0,.05);
+    }
+    h1{text-align:center;margin-bottom:6px;font-size:22px}
+    p.sub{text-align:center;color:#64748b;margin-bottom:24px}
+    /* upload area */
+    .upload{
+      border:2px dashed #cbd5e1;
       border-radius:10px;
+      aspect-ratio:1/1;
+      background:#f8fafc;
       display:flex;
       align-items:center;
       justify-content:center;
       flex-direction:column;
-      gap:8px;
-      background:#f7fbff;
-      color:#2b3b4a;
       cursor:pointer;
-      transition: background .12s ease;
+      transition:background .2s;
     }
-    .upload-area:hover { background:#eef7ff; }
-
-    .upload-note { font-size:13px; color:#435060; }
-
-    input[type="file"] { display:none; }
-
-    /* ---------- Preview (square) ---------- */
-    .preview {
-      margin-top:12px;
-      display:none; /* shown after upload */
-    }
-
-    .preview-container {
+    .upload:hover{background:#f1f5f9}
+    .upload p{color:#475569;font-size:14px;margin-top:6px}
+    input[type=file]{display:none}
+    /* preview */
+    .preview{display:none;margin-top:12px}
+    .preview-box{
+      aspect-ratio:1/1;
       width:100%;
-      aspect-ratio: 1 / 1;   /* 1x1 square preview box */
       border-radius:10px;
       overflow:hidden;
-      background:#eef6ff;
+      background:#f1f5f9;
       display:flex;
       align-items:center;
       justify-content:center;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
     }
-
-    canvas, video {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      background: transparent;
-    }
-
-    /* ---------- Controls ---------- */
-    .controls { margin-top:14px; display:none; } /* appear after upload */
-    .control-row { margin-bottom:10px; }
-    .label { font-size:13px; color:#324055; margin-bottom:6px; display:block; }
-    input[type="range"] { width:100%; accent-color:#2f7ff0; }
-
-    .btn {
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
+    canvas,video{width:100%;height:100%;object-fit:cover}
+    /* controls */
+    .controls{display:none;margin-top:14px}
+    label{font-size:13px;color:#334155;display:block;margin-bottom:4px}
+    input[type=range]{width:100%;accent-color:#3b82f6}
+    .btn{
       border:none;
       border-radius:8px;
-      padding:10px 12px;
-      font-weight:600;
       cursor:pointer;
-      transition: transform .08s ease, background .12s ease;
+      font-weight:600;
+      transition:.2s;
     }
-    .btn:active { transform: scale(.99); }
-
-    .btn-generate {
+    .btn-generate{
       width:100%;
-      background:#2f7ff0;
-      color:white;
-      box-shadow: 0 6px 18px rgba(47,127,240,0.14);
+      margin-top:10px;
+      background:#3b82f6;
+      color:#fff;
+      padding:12px;
     }
-
-    /* progress */
-    .progress-wrap { margin-top:10px; display:none; }
-    .progress-meta { display:flex; justify-content:space-between; font-size:13px; color:#2b3b4a; margin-bottom:6px; }
-    .progress-bg { width:100%; height:10px; background:#e6eef9; border-radius:999px; overflow:hidden; }
-    .progress-bar { height:100%; width:0%; background: linear-gradient(90deg,#2f7ff0,#46c2ff); transition: width .08s linear; }
-
-    /* bottom actions: download full-width + reset square */
-    .bottom-actions {
-      margin-top:14px;
-      display:flex;
-      gap:10px;
-      align-items:center;
+    .btn-generate:hover{background:#2563eb}
+    .progress{display:none;margin-top:18px}
+    .progress-head{
+      display:flex;justify-content:space-between;
+      font-size:13px;margin-bottom:6px;color:#475569
     }
-    .btn-download { flex:1; background:#16a34a; color:#fff; padding:12px; border-radius:8px; font-weight:700; display:none; }
-    .btn-download:active { transform:scale(.99); }
-    .btn-reset {
-      width:48px; height:48px;
-      display:none;
-      border-radius:8px;
-      background:#f1f5f9;
-      color:#1f2937;
-      font-size:18px;
-      align-items:center; justify-content:center;
-      display:flex; cursor:pointer;
-      border:1px solid rgba(15,23,42,0.04);
+    .progress-bar-bg{
+      height:10px;background:#e2e8f0;border-radius:6px;overflow:hidden
     }
-
-    /* helper */
-    .hidden { display:none !important; }
+    .progress-bar{
+      width:0%;height:100%;
+      background:linear-gradient(to right,#3b82f6,#06b6d4);
+      transition:width .1s linear;
+    }
+    .bottom{
+      display:flex;gap:10px;margin-top:16px;
+    }
+    .btn-download{
+      flex:1;background:#22c55e;color:#fff;padding:12px;display:none;
+    }
+    .btn-download:hover{background:#16a34a}
+    .btn-reset{
+      width:48px;height:48px;background:#e2e8f0;border-radius:8px;
+      font-size:20px;color:#334155;font-weight:700;display:none;
+    }
+    .btn-reset:hover{background:#cbd5e1}
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Image → Video (clean)</h1>
-    <p class="sub">Upload gambar, atur durasi, lalu generate. Hasilnya square (1:1).</p>
+<div class="container">
+  <h1>Image → Video Converter</h1>
+  <p class="sub">Ubah gambar statis jadi video square (1:1)</p>
 
-    <!-- UPLOAD -->
-    <div id="uploadArea" class="upload-area" title="Klik untuk memilih gambar">
-      <div>
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" style="opacity:.9">
-          <path d="M12 3v12" stroke="#2f7ff0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#2f7ff0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div style="text-align:center">
-        <div style="font-weight:700; color:#0b2440">Klik untuk unggah</div>
-        <div class="upload-note">PNG / JPG / WEBP — max 10MB</div>
-      </div>
-      <input id="fileInput" type="file" accept="image/*" />
-    </div>
-
-    <!-- PREVIEW + CONTROLS -->
-    <div id="previewBlock" class="preview">
-      <div class="preview-container" id="previewContainer">
-        <canvas id="canvas"></canvas>
-        <video id="video" class="hidden" controls playsinline></video>
-      </div>
-
-      <div id="controls" class="controls">
-        <div class="control-row">
-          <label class="label">Durasi: <span id="durationLabel">3s</span></label>
-          <input id="duration" type="range" min="1" max="60" value="3">
-        </div>
-
-        <div class="control-row">
-          <button id="generateBtn" class="btn btn-generate">Generate Video</button>
-        </div>
-
-        <div id="progressWrap" class="progress-wrap">
-          <div class="progress-meta">
-            <div>Proses pembuatan video...</div>
-            <div id="progressText" style="font-weight:700;color:#2f7ff0">0%</div>
-          </div>
-          <div class="progress-bg"><div id="progressBar" class="progress-bar"></div></div>
-        </div>
-      </div>
-
-      <div class="bottom-actions" style="margin-top:12px;">
-        <button id="downloadBtn" class="btn-download">Download Video</button>
-        <button id="resetBtn" class="btn-reset" title="Reset">↻</button>
-      </div>
-    </div>
+  <!-- Upload -->
+  <div id="uploadArea" class="upload">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.6">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+    <p><b>Klik untuk unggah</b></p>
+    <p style="font-size:12px;color:#94a3b8">PNG, JPG, WEBP (max 10MB)</p>
+    <input id="fileInput" type="file" accept="image/*">
   </div>
 
-  <script>
-    /* ---------- Element refs ---------- */
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput  = document.getElementById('fileInput');
-    const previewBlock = document.getElementById('previewBlock');
-    const previewContainer = document.getElementById('previewContainer');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const video = document.getElementById('video');
+  <!-- Preview -->
+  <div id="preview" class="preview">
+    <div class="preview-box">
+      <canvas id="canvas"></canvas>
+      <video id="video" class="hidden" controls></video>
+    </div>
 
-    const controls = document.getElementById('controls');
-    const durationInput = document.getElementById('duration');
-    const durationLabel = document.getElementById('durationLabel');
-    const generateBtn = document.getElementById('generateBtn');
+    <div id="controls" class="controls">
+      <label>Durasi: <span id="durVal">3s</span></label>
+      <input id="duration" type="range" min="1" max="60" value="3">
+      <button id="generate" class="btn btn-generate">Generate Video</button>
+    </div>
 
-    const progressWrap = document.getElementById('progressWrap');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
+    <div id="progress" class="progress">
+      <div class="progress-head">
+        <span>Proses membuat video...</span>
+        <span id="progText" style="color:#2563eb;font-weight:700">0%</span>
+      </div>
+      <div class="progress-bar-bg"><div id="progBar" class="progress-bar"></div></div>
+    </div>
 
-    const downloadBtn = document.getElementById('downloadBtn');
-    const resetBtn = document.getElementById('resetBtn');
+    <div class="bottom">
+      <button id="download" class="btn btn-download">Download Video</button>
+      <button id="reset" class="btn btn-reset">↻</button>
+    </div>
+  </div>
+</div>
 
-    /* ---------- State ---------- */
-    let img = null;               // HTMLImageElement
-    let currentURL = null;        // blob url for download
-    let canvasCssSize = 0;        // css size in px (square)
-    const DPR = window.devicePixelRatio || 1;
+<script>
+const upload=document.getElementById('uploadArea');
+const fileInput=document.getElementById('fileInput');
+const preview=document.getElementById('preview');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const video=document.getElementById('video');
+const controls=document.getElementById('controls');
+const durInput=document.getElementById('duration');
+const durVal=document.getElementById('durVal');
+const generate=document.getElementById('generate');
+const progress=document.getElementById('progress');
+const progBar=document.getElementById('progBar');
+const progText=document.getElementById('progText');
+const download=document.getElementById('download');
+const reset=document.getElementById('reset');
+let img=null;
 
-    /* ---------- Helpers ---------- */
-    function hideInitialButtons() {
-      // initial state: preview hidden, controls hidden, progress hidden, download/reset hidden
-      previewBlock.style.display = 'none';
-      controls.style.display = 'none';
-      progressWrap.style.display = 'none';
-      downloadBtn.style.display = 'none';
-      resetBtn.style.display = 'none';
-    }
+durInput.oninput=()=>durVal.textContent=durInput.value+"s";
 
-    function setCanvasSquareAndDraw() {
-      // compute CSS pixel size based on previewContainer clientWidth
-      const containerWidth = previewContainer.clientWidth;
-      canvasCssSize = Math.floor(containerWidth); // css pixels
-      // set actual canvas pixel size for crispness
-      canvas.width = canvasCssSize * DPR;
-      canvas.height = canvasCssSize * DPR;
-      canvas.style.width = canvasCssSize + 'px';
-      canvas.style.height = canvasCssSize + 'px';
-      // reset transform so we can draw in CSS pixels
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      // draw image center-cropped square onto canvas
-      if (img) {
-        // source square
-        const sSize = Math.min(img.naturalWidth, img.naturalHeight);
-        const sx = Math.floor((img.naturalWidth - sSize) / 2);
-        const sy = Math.floor((img.naturalHeight - sSize) / 2);
-        ctx.clearRect(0,0, canvasCssSize, canvasCssSize);
-        ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, canvasCssSize, canvasCssSize);
-      } else {
-        ctx.clearRect(0,0, canvasCssSize, canvasCssSize);
-      }
-    }
+upload.onclick=()=>fileInput.click();
+fileInput.onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    img=new Image();
+    img.onload=()=>{
+      const size=Math.min(img.width,img.height);
+      const sx=(img.width-size)/2,sy=(img.height-size)/2;
+      canvas.width=canvas.height=512;
+      ctx.drawImage(img,sx,sy,size,size,0,0,512,512);
+      upload.style.display="none";
+      preview.style.display="block";
+      controls.style.display="block";
+    };
+    img.src=r.result;
+  };
+  r.readAsDataURL(f);
+};
 
-    function revokeCurrentURL() {
-      if (currentURL) {
-        try { URL.revokeObjectURL(currentURL); } catch(e){}
-        currentURL = null;
-      }
-    }
+generate.onclick=()=>{
+  if(!img)return alert("Unggah gambar dulu!");
+  controls.style.display="none";
+  progress.style.display="block";
+  progBar.style.width="0%";
+  progText.textContent="0%";
+  download.style.display="none";
+  reset.style.display="none";
 
-    /* ---------- Init ---------- */
-    hideInitialButtons();
+  const stream=canvas.captureStream(30);
+  const chunks=[];
+  const rec=new MediaRecorder(stream,{mimeType:"video/webm"});
+  rec.ondataavailable=e=>chunks.push(e.data);
+  rec.start();
 
-    /* ---------- Upload handling ---------- */
-    // click upload area triggers file input
-    uploadArea.addEventListener('click', () => fileInput.click());
-    // drag & drop (optional)
-    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.style.background = '#eef7ff'; });
-    uploadArea.addEventListener('dragleave', (e) => { uploadArea.style.background = ''; });
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault(); uploadArea.style.background = '';
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f) fileInput.files = e.dataTransfer.files, handleFile(f);
-    });
+  const dur=+durInput.value*1000;
+  const start=performance.now();
 
-    fileInput.addEventListener('change', (ev) => {
-      const f = ev.target.files && ev.target.files[0];
-      if (!f) return;
-      handleFile(f);
-    });
+  function frame(t){
+    const p=Math.min((t-start)/dur,1);
+    const per=Math.floor(p*100);
+    progBar.style.width=per+"%";
+    progText.textContent=per+"%";
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    if(p<1)requestAnimationFrame(frame);
+    else rec.stop();
+  }
+  requestAnimationFrame(frame);
 
-    function handleFile(file) {
-      // simple file size/type guard
-      if (!file.type.startsWith('image/')) { alert('File bukan gambar.'); return; }
-      if (file.size > 10 * 1024 * 1024) { alert('Maks 10MB.'); return; }
+  rec.onstop=()=>{
+    const blob=new Blob(chunks,{type:"video/webm"});
+    const url=URL.createObjectURL(blob);
+    video.src=url;
+    video.classList.remove("hidden");
+    progress.style.display="none";
+    download.style.display="block";
+    reset.style.display="block";
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const tmp = new Image();
-        tmp.onload = () => {
-          img = tmp;
-          // hide upload, show preview + controls (only duration & generate)
-          uploadArea.style.display = 'none';
-          previewBlock.style.display = 'block';
-          controls.style.display = 'block';        // show duration + generate
-          progressWrap.style.display = 'none';
-          downloadBtn.style.display = 'none';
-          resetBtn.style.display = 'none';
-          video.classList.add('hidden');
-          // set & draw canvas square
-          setCanvasSquareAndDraw();
-        };
-        tmp.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    }
+    download.onclick=()=>{
+      const a=document.createElement("a");
+      a.href=url;a.download="image-video.webm";a.click();
+    };
+  };
+};
 
-    // on resize keep canvas square & redraw
-    window.addEventListener('resize', () => {
-      if (previewBlock.style.display !== 'none' && img) {
-        setCanvasSquareAndDraw();
-      }
-    });
-
-    /* ---------- Controls ---------- */
-    durationInput.addEventListener('input', () => {
-      durationLabel.textContent = durationInput.value + 's';
-    });
-
-    generateBtn.addEventListener('click', () => {
-      if (!img) { alert('Silakan unggah gambar dulu.'); return; }
-
-      // hide duration + generate (controls) and show progress
-      controls.style.display = 'none';
-      progressWrap.style.display = 'block';
-      progressBar.style.width = '0%';
-      progressText.textContent = '0%';
-      downloadBtn.style.display = 'none';
-      resetBtn.style.display = 'none';
-      video.classList.add('hidden');
-      canvas.classList.remove('hidden');
-
-      // start recording canvas stream
-      const fps = 30;
-      const stream = canvas.captureStream(fps);
-      const chunks = [];
-      // choose a mime that is widely supported; browser may fallback
-      let options = { mimeType: 'video/webm;codecs=vp9' };
-      try { var recorder = new MediaRecorder(stream, options); }
-      catch(e) {
-        try { recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' }); }
-        catch(e2) { recorder = new MediaRecorder(stream); }
-      }
-      recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-      recorder.start();
-
-      const durationSec = Math.max(1, Number(durationInput.value) || 3);
-      const durationMs = durationSec * 1000;
-      const start = performance.now();
-
-      // draw static frames (or you can animate here)
-      function frame(now) {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / durationMs, 1);
-        const pct = Math.floor(progress * 100);
-        progressBar.style.width = pct + '%';
-        progressText.textContent = pct + '%';
-
-        // re-draw the same cropped image every frame to ensure recording frame updated
-        setCanvasSquareAndDraw();
-
-        if (progress < 1) requestAnimationFrame(frame);
-        else recorder.stop();
-      }
-      requestAnimationFrame(frame);
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        revokeCurrentURL();
-        currentURL = URL.createObjectURL(blob);
-        // show video preview (square)
-        video.src = currentURL;
-        video.classList.remove('hidden');
-        canvas.classList.add('hidden');
-        progressWrap.style.display = 'none';
-        // show download + reset
-        downloadBtn.style.display = 'block';
-        resetBtn.style.display = 'flex';
-        // set download action
-        downloadBtn.onclick = () => {
-          const a = document.createElement('a');
-          a.href = currentURL;
-          a.download = 'generated-video.webm';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        };
-      };
-    });
-
-    /* ---------- Reset ---------- */
-    resetBtn.addEventListener('click', () => {
-      // clear state
-      img = null;
-      video.src = '';
-      revokeCurrentURL();
-      // UI -> initial
-      previewBlock.style.display = 'none';
-      uploadArea.style.display = 'flex';
-      controls.style.display = 'none';
-      progressWrap.style.display = 'none';
-      downloadBtn.style.display = 'none';
-      resetBtn.style.display = 'none';
-      // reset file input
-      try { fileInput.value = ''; } catch(e){}
-    });
-
-    /* ---------- safety: start hidden ---------- */
-    hideInitialButtons();
-  </script>
+reset.onclick=()=>{
+  preview.style.display="none";
+  upload.style.display="flex";
+  download.style.display="none";
+  reset.style.display="none";
+  progress.style.display="none";
+  controls.style.display="none";
+  fileInput.value="";
+  img=null;
+};
+</script>
 </body>
 </html>
