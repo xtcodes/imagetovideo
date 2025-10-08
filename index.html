@@ -355,7 +355,7 @@ generate.onclick = () => {
   download.style.display = "none";
   reset.style.display = "none";
 
-  const stream = canvas.captureStream(60);
+  const stream = canvas.captureStream(30);
   const chunks = [];
   const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
   rec.ondataavailable = e => chunks.push(e.data);
