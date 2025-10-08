@@ -313,7 +313,7 @@ fileInput.onchange = e => {
 };
 
 function drawPreview() {
-  const canvasSize = 1080;
+  const canvasSize = 1920;
   canvas.width = canvas.height = canvasSize;
 
   const imgRatio = img.width / img.height;
@@ -355,7 +355,7 @@ generate.onclick = () => {
   download.style.display = "none";
   reset.style.display = "none";
 
-  const stream = canvas.captureStream(30);
+  const stream = canvas.captureStream(60);
   const chunks = [];
   const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
   rec.ondataavailable = e => chunks.push(e.data);
